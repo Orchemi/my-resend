@@ -1,16 +1,15 @@
+import { TextEncoder } from "node:util";
 import {
-  SESClient,
+  SESv2Client,
   SendEmailCommand,
-  SendRawEmailCommand,
-  VerifyDomainIdentityCommand,
-  GetIdentityVerificationAttributesCommand,
-  DeleteIdentityCommand,
+  CreateEmailIdentityCommand,
+  GetEmailIdentityCommand,
+  DeleteEmailIdentityCommand,
   CreateConfigurationSetCommand,
-  VerifyDomainDkimCommand,
-  GetIdentityDkimAttributesCommand,
-} from "@aws-sdk/client-ses";
+  PutEmailIdentityDkimAttributesCommand,
+} from "@aws-sdk/client-sesv2";
 
-const sesClient = new SESClient({
+const sesClient = new SESv2Client({
   region: process.env.AWS_REGION || "us-east-1",
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
@@ -37,9 +36,39 @@ export interface SendEmailOptions {
   tags?: Record<string, string>;
 }
 
+export type SESVerificationStatus =
+  | "Pending"
+  | "Success"
+  | "Failed"
+  | "TemporaryFailure"
+  | "NotStarted";
+
 export interface SESVerificationResult {
   verificationToken: string;
-  status: "Pending" | "Success" | "Failed" | "TemporaryFailure" | "NotStarted";
+  status: SESVerificationStatus;
+}
+
+/**
+ * Map v2 enum (`PENDING|SUCCESS|FAILED|TEMPORARY_FAILURE|NOT_STARTED`) to
+ * v1-compatible PascalCase string preserved in the public API.
+ */
+function mapVerificationStatus(
+  v2Status: string | undefined
+): SESVerificationStatus {
+  switch (v2Status) {
+    case "PENDING":
+      return "Pending";
+    case "SUCCESS":
+      return "Success";
+    case "FAILED":
+      return "Failed";
+    case "TEMPORARY_FAILURE":
+      return "TemporaryFailure";
+    case "NOT_STARTED":
+    case undefined:
+    default:
+      return "NotStarted";
+  }
 }
 
 export async function sendEmail(options: SendEmailOptions): Promise<string> {
@@ -51,34 +80,36 @@ export async function sendEmail(options: SendEmailOptions): Promise<string> {
   }
 
   const command = new SendEmailCommand({
-    Source: from,
+    FromEmailAddress: from,
     Destination: {
       ToAddresses: to,
       CcAddresses: cc,
       BccAddresses: bcc,
     },
-    Message: {
-      Subject: {
-        Data: subject,
-        Charset: "UTF-8",
-      },
-      Body: {
-        Html: html
-          ? {
-              Data: html,
-              Charset: "UTF-8",
-            }
-          : undefined,
-        Text: text
-          ? {
-              Data: text,
-              Charset: "UTF-8",
-            }
-          : undefined,
+    Content: {
+      Simple: {
+        Subject: {
+          Data: subject,
+          Charset: "UTF-8",
+        },
+        Body: {
+          Html: html
+            ? {
+                Data: html,
+                Charset: "UTF-8",
+              }
+            : undefined,
+          Text: text
+            ? {
+                Data: text,
+                Charset: "UTF-8",
+              }
+            : undefined,
+        },
       },
     },
     ReplyToAddresses: replyTo,
-    Tags: tags
+    EmailTags: tags
       ? Object.entries(tags).map(([Name, Value]) => ({ Name, Value }))
       : undefined,
   });
@@ -145,11 +176,16 @@ export async function sendRawEmail(options: SendEmailOptions): Promise<string> {
 
   rawMessage += `--${boundary}--\r\n`;
 
-  const command = new SendRawEmailCommand({
-    Source: from,
-    Destinations: recipients,
-    RawMessage: {
-      Data: new TextEncoder().encode(rawMessage),
+  const command = new SendEmailCommand({
+    FromEmailAddress: from,
+    Destination: {
+      ToAddresses: recipients,
+    },
+    ReplyToAddresses: replyTo,
+    Content: {
+      Raw: {
+        Data: new TextEncoder().encode(rawMessage),
+      },
     },
   });
 
@@ -160,14 +196,30 @@ export async function sendRawEmail(options: SendEmailOptions): Promise<string> {
 export async function verifyDomain(
   domain: string
 ): Promise<SESVerificationResult> {
-  const command = new VerifyDomainIdentityCommand({
-    Domain: domain,
-  });
+  // v2 splits identity creation from verification-token retrieval. Create
+  // the identity (idempotent — swallow AlreadyExistsException) then read
+  // back DkimAttributes.Tokens[0] which doubles as the SES verification
+  // token used in the `_amazonses.<domain>` TXT record.
+  try {
+    await sesClient.send(
+      new CreateEmailIdentityCommand({ EmailIdentity: domain })
+    );
+  } catch (error: unknown) {
+    const awsError = error as { name?: string };
+    if (awsError.name !== "AlreadyExistsException") {
+      throw error;
+    }
+    // identity already present — fall through to GetEmailIdentity
+  }
 
-  const response = await sesClient.send(command);
+  const get = await sesClient.send(
+    new GetEmailIdentityCommand({ EmailIdentity: domain })
+  );
+
+  const verificationToken = get.DkimAttributes?.Tokens?.[0] ?? "";
 
   return {
-    verificationToken: response.VerificationToken!,
+    verificationToken,
     status: "Pending",
   };
 }
@@ -175,42 +227,38 @@ export async function verifyDomain(
 export async function getDomainVerificationStatus(
   domain: string
 ): Promise<string> {
-  const command = new GetIdentityVerificationAttributesCommand({
-    Identities: [domain],
-  });
-
-  const response = await sesClient.send(command);
-  const attributes = response.VerificationAttributes?.[domain];
-
-  return attributes?.VerificationStatus || "NotStarted";
+  const response = await sesClient.send(
+    new GetEmailIdentityCommand({ EmailIdentity: domain })
+  );
+  return mapVerificationStatus(response.VerificationStatus);
 }
 
 export async function enableDomainDkim(domain: string): Promise<string[]> {
-  const command = new VerifyDomainDkimCommand({
-    Domain: domain,
-  });
+  await sesClient.send(
+    new PutEmailIdentityDkimAttributesCommand({
+      EmailIdentity: domain,
+      SigningEnabled: true,
+    })
+  );
 
-  const response = await sesClient.send(command);
-  return response.DkimTokens || [];
+  const get = await sesClient.send(
+    new GetEmailIdentityCommand({ EmailIdentity: domain })
+  );
+
+  return get.DkimAttributes?.Tokens || [];
 }
 
 export async function getDomainDkimTokens(domain: string): Promise<string[]> {
-  const command = new GetIdentityDkimAttributesCommand({
-    Identities: [domain],
-  });
-
-  const response = await sesClient.send(command);
-  const attributes = response.DkimAttributes?.[domain];
-
-  return attributes?.DkimTokens || [];
+  const response = await sesClient.send(
+    new GetEmailIdentityCommand({ EmailIdentity: domain })
+  );
+  return response.DkimAttributes?.Tokens || [];
 }
 
 export async function deleteDomainIdentity(domain: string): Promise<void> {
-  const command = new DeleteIdentityCommand({
-    Identity: domain,
-  });
-
-  await sesClient.send(command);
+  await sesClient.send(
+    new DeleteEmailIdentityCommand({ EmailIdentity: domain })
+  );
 }
 
 export async function createConfigurationSet(domain: string): Promise<string> {
@@ -218,16 +266,18 @@ export async function createConfigurationSet(domain: string): Promise<string> {
 
   try {
     const command = new CreateConfigurationSetCommand({
-      ConfigurationSet: {
-        Name: configSetName,
-      },
+      ConfigurationSetName: configSetName,
     });
 
     await sesClient.send(command);
 
     return configSetName;
   } catch (error: unknown) {
-    const awsError = error as { name?: string; message?: string; $metadata?: { httpStatusCode?: number } };
+    const awsError = error as {
+      name?: string;
+      message?: string;
+      $metadata?: { httpStatusCode?: number };
+    };
     // Handle various ways AWS might indicate the configuration set already exists
     if (
       awsError.name === "AlreadyExistsException" ||
