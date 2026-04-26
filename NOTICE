@@ -41,8 +41,8 @@ The following changes distinguish my-resend from the upstream project
   * AWS SDK migration: SES v1 (`@aws-sdk/client-ses`)
     -> SES v2 (`@aws-sdk/client-sesv2`)
   * DNS automation: DigitalOcean DNS only
-    -> DigitalOcean DNS + AWS Route53 (provider-pluggable)
+    -> DigitalOcean DNS + AWS Route53, selectable at runtime via the
+    `DNS_PROVIDER` environment variable
   * API key prefix: `frs_` -> `mrs_`
-  * Branding, README localization (KO), and documentation rewrite
-  * Default deployment target: home-server (Dokku) with horbis infra
-    conventions
+  * Branding, README localization (English + Korean), and full
+    documentation rewrite
