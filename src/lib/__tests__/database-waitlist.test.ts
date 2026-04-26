@@ -33,9 +33,12 @@ import {
   db,
 } from '../database';
 
-// Get access to the mocked pool
-const mockPool = db as {
-  connect: jest.MockedFunction<() => Promise<{ query: jest.MockedFunction<unknown>; release: jest.MockedFunction<unknown> }>>;
+// Get access to the mocked pool. The actual `Pool` type from `pg` has a
+// dozen methods we don't touch here — narrow to just the surface this
+// test mutates. `jest.Mock` (vs `MockedFunction<...>`) avoids TypeScript's
+// strict callable-shape comparison with the real `Pool.connect` overload.
+const mockPool = db as unknown as {
+  connect: jest.Mock;
 };
 const mockClient = {
   query: jest.fn(),
@@ -304,12 +307,12 @@ describe('Waitlist Database Operations', () => {
         signups_this_month: 45,
         avg_estimated_volume: 15000.5,
         top_referral_sources: [
-          { source: 'google', count: '30' },
-          { source: 'twitter', count: '20' },
+          { source: 'google', count: 30 },
+          { source: 'twitter', count: 20 },
         ],
         top_utm_sources: [
-          { source: 'google', count: '25' },
-          { source: 'facebook', count: '15' },
+          { source: 'google', count: 25 },
+          { source: 'facebook', count: 15 },
         ],
       };
 

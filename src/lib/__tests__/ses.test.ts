@@ -69,7 +69,8 @@ describe("createConfigurationSet", () => {
     });
     // Negative assertion: v1-style nested key must NOT be present
     expect(
-      (calls[0].args[0].input as Record<string, unknown>).ConfigurationSet
+      (calls[0].args[0].input as unknown as Record<string, unknown>)
+        .ConfigurationSet
     ).toBeUndefined();
   });
 
@@ -360,7 +361,7 @@ describe("sendEmail (Simple content)", () => {
     });
 
     // v1 keys must NOT leak through
-    const inputAsRecord = input as Record<string, unknown>;
+    const inputAsRecord = input as unknown as Record<string, unknown>;
     expect(inputAsRecord.Source).toBeUndefined();
     expect(inputAsRecord.Message).toBeUndefined();
     expect(inputAsRecord.Tags).toBeUndefined();
@@ -492,7 +493,7 @@ describe("sendRawEmail (Raw content)", () => {
     expect(input.Content?.Simple).toBeUndefined();
 
     // v1-style top-level keys must not leak
-    const inputAsRecord = input as Record<string, unknown>;
+    const inputAsRecord = input as unknown as Record<string, unknown>;
     expect(inputAsRecord.Source).toBeUndefined();
     expect(inputAsRecord.Destinations).toBeUndefined();
     expect(inputAsRecord.RawMessage).toBeUndefined();

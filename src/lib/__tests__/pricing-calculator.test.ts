@@ -135,17 +135,14 @@ describe('getMyResendCost', () => {
 
 describe('getBestHostedTier', () => {
   it('should always return the single hosted tier', () => {
-    expect(getBestHostedTier(1000).name).toBe('Hosted');
-    expect(getBestHostedTier(3000).name).toBe('Hosted');
-    expect(getBestHostedTier(5000).name).toBe('Hosted');
-    expect(getBestHostedTier(50000).name).toBe('Hosted');
-    expect(getBestHostedTier(1000000).name).toBe('Hosted');
+    // Function is parameterless — it returns the same tier regardless of
+    // call site. The original tests passed an argument back when the
+    // function took a `volume` parameter.
+    expect(getBestHostedTier().name).toBe('Hosted');
   });
 
-  it('should handle edge cases', () => {
-    expect(getBestHostedTier(0).name).toBe('Hosted');
-    expect(getBestHostedTier(-1000).name).toBe('Hosted');
-    expect(getBestHostedTier(5000000).name).toBe('Hosted');
+  it('should consistently return the same tier instance', () => {
+    expect(getBestHostedTier()).toBe(getBestHostedTier());
   });
 });
 
