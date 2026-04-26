@@ -273,14 +273,25 @@ export async function getWaitlistAnalytics(): Promise<WaitlistAnalytics> {
     ),
   ]);
 
+  // Postgres returns COUNT(*) as a string-typed bigint; parse here so
+  // the returned shape matches WaitlistAnalytics (numeric `count`).
+  const parseCountRows = (
+    rows: Array<{ source: string; count: string | number }>
+  ): Array<{ source: string; count: number }> =>
+    rows.map((row) => ({
+      source: row.source,
+      count:
+        typeof row.count === "number" ? row.count : parseInt(row.count, 10),
+    }));
+
   return {
     total_signups: parseInt(totalResult.rows[0].count),
     signups_today: parseInt(todayResult.rows[0].count),
     signups_this_week: parseInt(weekResult.rows[0].count),
     signups_this_month: parseInt(monthResult.rows[0].count),
     avg_estimated_volume: parseFloat(avgVolumeResult.rows[0].avg_volume) || 0,
-    top_referral_sources: referralSourcesResult.rows,
-    top_utm_sources: utmSourcesResult.rows,
+    top_referral_sources: parseCountRows(referralSourcesResult.rows),
+    top_utm_sources: parseCountRows(utmSourcesResult.rows),
   };
 }
 
