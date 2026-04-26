@@ -87,7 +87,7 @@ The schema lives in `database.sql`; there is no migration framework — apply on
 - v3 SDK (`@aws-sdk/client-route-53`)
 - Idempotent UPSERT via a single `ChangeResourceRecordSetsCommand` batch — lists existing records first and skips no-op rows
 - Preserves CNAME trailing dots and quotes TXT values per RFC 1035
-- Requires `AWS_HOSTED_ZONE_ID`; without it `verifyDomainOwnership` returns `false` and `setupDomainDNS` throws
+- `AWS_HOSTED_ZONE_ID` is optional — if unset, `resolveHostedZoneId(domain)` auto-discovers the hosted zone via `ListHostedZonesByName`, walking up to parent zones for subdomains (e.g. `mail.example.com` resolves to the `example.com` zone). Resolved zone IDs are memoized per-process. Returns `undefined` when no zone matches; `verifyDomainOwnership` then returns `false` and `setupDomainDNS` throws
 
 **API Key System** (`src/lib/api-keys.ts`):
 - Format: `mrs_{keyId}_{secretPart}`
@@ -167,8 +167,8 @@ DNS_PROVIDER=digitalocean        # or "route53"; defaults to "digitalocean"
 # DigitalOcean (required when DNS_PROVIDER=digitalocean)
 DO_API_TOKEN=...
 
-# Route53 (required when DNS_PROVIDER=route53)
-AWS_HOSTED_ZONE_ID=...           # the hosted zone that owns the sending domains
+# Route53 (DNS_PROVIDER=route53)
+AWS_HOSTED_ZONE_ID=...           # optional — if unset, auto-discovered from the sending domain via ListHostedZonesByName (walks up to parent zones)
 
 # Security
 NEXTAUTH_SECRET=...

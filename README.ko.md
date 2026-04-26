@@ -66,7 +66,9 @@ DNS_PROVIDER=digitalocean
 # DigitalOcean DNS (DNS_PROVIDER=digitalocean 일 때 필수)
 DO_API_TOKEN=your-digitalocean-api-token
 
-# AWS Route53 (DNS_PROVIDER=route53 일 때 필수)
+# AWS Route53 (DNS_PROVIDER=route53). AWS_HOSTED_ZONE_ID 는 선택입니다 —
+# 미설정 시 발송 도메인으로부터 ListHostedZonesByName 을 통해 hosted zone 을
+# 자동 탐지하며, 서브도메인은 parent zone 까지 walk-up 합니다.
 # AWS_HOSTED_ZONE_ID=Z0123456789ABCDEFGHIJ
 
 # 관리자
@@ -137,7 +139,10 @@ npm run dev
 ### 옵션 B — AWS Route53
 
 1. 발송 도메인의 hosted zone 을 생성하거나 기존 zone 을 선택합니다
-2. 동일 IAM user (또는 별도 user) 에 Route53 statement 를 추가합니다:
+2. 동일 IAM user (또는 별도 user) 에 Route53 statement 를 추가합니다.
+   `route53:ListHostedZonesByName` 을 포함하면 발송 도메인으로부터
+   hosted zone 을 자동 탐지할 수 있습니다 (다중 zone 을 자동 탐지하려면
+   `Resource` 를 `*` 로 넓힐 수 있음):
    ```json
    {
      "Version": "2012-10-17",
@@ -146,6 +151,7 @@ npm run dev
          "Effect": "Allow",
          "Action": [
            "route53:GetHostedZone",
+           "route53:ListHostedZonesByName",
            "route53:ListResourceRecordSets",
            "route53:ChangeResourceRecordSets"
          ],
@@ -157,6 +163,10 @@ npm run dev
 3. 환경변수 설정:
    ```env
    DNS_PROVIDER=route53
+   # AWS_HOSTED_ZONE_ID 는 선택입니다 — 미설정 시 발송 도메인으로부터
+   # ListHostedZonesByName 을 통해 hosted zone 을 자동 탐지합니다
+   # (서브도메인은 parent zone 까지 walk-up — 예: mail.example.com 은
+   # example.com zone 으로 매칭).
    AWS_HOSTED_ZONE_ID=Z0123456789ABCDEFGHIJ
    # AWS_REGION / AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY 는 SES 와 공유
    ```
@@ -287,8 +297,9 @@ npm run test:coverage       # 커버리지 리포트
 
 **Q: Route53 DNS 자동화가 동작하지 않습니다**
 
-- ✅ `AWS_HOSTED_ZONE_ID` 가 설정되어 있는지 확인하세요. 미설정 시 `verifyDomainOwnership` 는 `false` 를 반환하고 `setupDomainDNS` 는 throw 합니다
-- ✅ IAM user 가 `route53:GetHostedZone`, `route53:ListResourceRecordSets`, `route53:ChangeResourceRecordSets` 권한을 가져야 합니다
+- ✅ `AWS_HOSTED_ZONE_ID` 는 선택입니다 — 미설정 시 발송 도메인으로부터 `ListHostedZonesByName` 을 통해 hosted zone 을 자동 탐지합니다 (서브도메인은 parent zone 까지 walk-up). `verifyDomainOwnership` 는 `false` 를 반환하고 `setupDomainDNS` 는 계정에 매칭되는 hosted zone 이 전혀 없을 때만 throw 합니다
+- ✅ IAM user 가 `route53:GetHostedZone`, `route53:ListHostedZonesByName`, `route53:ListResourceRecordSets`, `route53:ChangeResourceRecordSets` 권한을 가져야 합니다
+- ✅ 자동 탐지 테스트: `aws route53 list-hosted-zones-by-name --dns-name yourdomain.com.`
 - ✅ zone 테스트: `aws route53 get-hosted-zone --id YOUR_HOSTED_ZONE_ID`
 
 **Q: 도메인 verify 가 "pending" 에서 멈춰있습니다**
@@ -445,4 +456,4 @@ MIT — 전문은 [LICENSE](./LICENSE) 를 참조하세요. 원작자의 copyrig
 - [ ] SMTP 서버 지원
 - [ ] 메일 캠페인 관리
 - [ ] Cloudflare DNS provider (`DNS_PROVIDER` 의 세 번째 옵션)
-- [ ] Route53 hosted-zone 자동 탐지 (`AWS_HOSTED_ZONE_ID` 환경변수 생략)
+- [x] Route53 hosted-zone 자동 탐지 (`AWS_HOSTED_ZONE_ID` 환경변수 생략)

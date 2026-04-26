@@ -66,7 +66,9 @@ DNS_PROVIDER=digitalocean
 # DigitalOcean DNS (required when DNS_PROVIDER=digitalocean)
 DO_API_TOKEN=your-digitalocean-api-token
 
-# AWS Route53 (required when DNS_PROVIDER=route53)
+# AWS Route53 (DNS_PROVIDER=route53). AWS_HOSTED_ZONE_ID is optional —
+# if unset, the matching hosted zone is auto-discovered from the sending
+# domain via ListHostedZonesByName, walking up to parent zones if needed.
 # AWS_HOSTED_ZONE_ID=Z0123456789ABCDEFGHIJ
 
 # Admin
@@ -137,7 +139,10 @@ Pick whichever provider hosts your sending domain. The active provider is chosen
 ### Option B — AWS Route53
 
 1. Create or pick an existing hosted zone for your sending domain
-2. Attach a Route53 statement to the same IAM user (or a separate one):
+2. Attach a Route53 statement to the same IAM user (or a separate one).
+   Include `route53:ListHostedZonesByName` so the hosted zone can be
+   auto-discovered from the sending domain (and the resource constraint
+   can be widened to `*` if you want discovery across multiple zones):
    ```json
    {
      "Version": "2012-10-17",
@@ -146,6 +151,7 @@ Pick whichever provider hosts your sending domain. The active provider is chosen
          "Effect": "Allow",
          "Action": [
            "route53:GetHostedZone",
+           "route53:ListHostedZonesByName",
            "route53:ListResourceRecordSets",
            "route53:ChangeResourceRecordSets"
          ],
@@ -157,6 +163,10 @@ Pick whichever provider hosts your sending domain. The active provider is chosen
 3. Set environment variables:
    ```env
    DNS_PROVIDER=route53
+   # AWS_HOSTED_ZONE_ID is optional — if unset, the matching hosted zone
+   # is auto-discovered from the sending domain via ListHostedZonesByName
+   # (walking up to parent zones for subdomains, e.g. mail.example.com
+   # resolves to the example.com zone).
    AWS_HOSTED_ZONE_ID=Z0123456789ABCDEFGHIJ
    # AWS_REGION / AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY are shared with SES
    ```
@@ -287,8 +297,9 @@ For end-to-end verification against real AWS, send a test email from the dashboa
 
 **Q: Route53 DNS automation not working**
 
-- ✅ Make sure `AWS_HOSTED_ZONE_ID` is set; `verifyDomainOwnership` returns `false` and `setupDomainDNS` throws when it is missing
-- ✅ The IAM user needs `route53:GetHostedZone`, `route53:ListResourceRecordSets`, and `route53:ChangeResourceRecordSets`
+- ✅ `AWS_HOSTED_ZONE_ID` is optional — if unset, the zone is auto-discovered from the sending domain via `ListHostedZonesByName` (walking up to parent zones). `verifyDomainOwnership` returns `false` and `setupDomainDNS` throws only when no matching hosted zone exists in the account
+- ✅ The IAM user needs `route53:GetHostedZone`, `route53:ListHostedZonesByName`, `route53:ListResourceRecordSets`, and `route53:ChangeResourceRecordSets`
+- ✅ Test discovery: `aws route53 list-hosted-zones-by-name --dns-name yourdomain.com.`
 - ✅ Test the zone: `aws route53 get-hosted-zone --id YOUR_HOSTED_ZONE_ID`
 
 **Q: Domain verification stuck at "pending"**
@@ -445,4 +456,4 @@ MIT — see [LICENSE](./LICENSE) for the full text. The original author's copyri
 - [ ] SMTP server support
 - [ ] Email campaign management
 - [ ] Cloudflare DNS provider (third option behind `DNS_PROVIDER`)
-- [ ] Hosted-zone auto-discovery for Route53 (skip the explicit `AWS_HOSTED_ZONE_ID` env)
+- [x] Hosted-zone auto-discovery for Route53 (skip the explicit `AWS_HOSTED_ZONE_ID` env)
