@@ -7,11 +7,6 @@ const createJestConfig = nextJest({
 
 // Add any custom config to be passed to Jest
 const customJestConfig = {
-  // Run before each test file's module graph loads. Seeds env vars that
-  // source modules (e.g. src/lib/digitalocean.ts) capture at
-  // module-load time, so jest.mock + import order doesn't have to fight
-  // process.env timing.
-  setupFiles: ['<rootDir>/jest.setup.env.js'],
   setupFilesAfterEnv: [],
   testEnvironment: 'jsdom',
   collectCoverageFrom: [
