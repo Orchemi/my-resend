@@ -1,4 +1,5 @@
 import axios, { type AxiosInstance } from "axios";
+import type { DnsProviderRecord } from "./dns-provider";
 
 const DO_API_BASE = "https://api.digitalocean.com/v2";
 
@@ -66,14 +67,6 @@ async function retryRequest<T>(
   }
 
   throw lastError;
-}
-
-export interface DNSRecord {
-  type: string;
-  name: string;
-  value: string;
-  ttl: number;
-  description?: string;
 }
 
 export interface DODomainRecord {
@@ -145,7 +138,7 @@ export async function getDomainRecords(
 
 export async function createDNSRecord(
   domain: string,
-  record: DNSRecord
+  record: DnsProviderRecord
 ): Promise<DODomainRecord> {
   if (!getApiToken()) {
     throw new Error("Digital Ocean API token not configured");
@@ -202,7 +195,7 @@ export async function createDNSRecord(
 export async function updateDNSRecord(
   domain: string,
   recordId: number,
-  record: Partial<DNSRecord>
+  record: Partial<DnsProviderRecord>
 ): Promise<DODomainRecord> {
   if (!getApiToken()) {
     throw new Error("Digital Ocean API token not configured");
@@ -262,7 +255,7 @@ export async function deleteDNSRecord(
 
 export async function setupDomainDNS(
   domain: string,
-  dnsRecords: DNSRecord[]
+  dnsRecords: DnsProviderRecord[]
 ): Promise<DODomainRecord[]> {
   if (!getApiToken()) {
     console.warn(
@@ -376,7 +369,7 @@ export async function verifyDomainOwnership(domain: string): Promise<boolean> {
   }
 }
 
-export function formatDNSInstructions(dnsRecords: DNSRecord[]): string {
+export function formatDNSInstructions(dnsRecords: DnsProviderRecord[]): string {
   let instructions =
     "Please create the following DNS records in your domain provider:\n\n";
 

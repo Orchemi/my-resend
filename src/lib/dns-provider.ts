@@ -20,15 +20,22 @@ import * as route53 from "./route53";
 export type DnsProviderName = "digitalocean" | "route53";
 
 /**
- * Unified DNS record shape returned by all providers. Each provider's
+ * Unified DNS record shape used across providers. Each provider's
  * native record type (e.g. `DODomainRecord`) is normalized to this shape
  * inside the dispatcher so consumers stay provider-agnostic.
+ *
+ * `description` is an optional human-readable label produced by
+ * `generateDNSRecords()` (e.g. "SES Domain Verification") and consumed
+ * by `formatDNSInstructions()` for the manual-setup output. Providers
+ * that don't surface a description (Route53's UPSERT path) simply
+ * leave it undefined.
  */
 export interface DnsProviderRecord {
   type: string;
   name: string;
   value: string;
   ttl: number;
+  description?: string;
 }
 
 const DEFAULT_PROVIDER: DnsProviderName = "digitalocean";
