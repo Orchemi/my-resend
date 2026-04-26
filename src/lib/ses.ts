@@ -9,13 +9,25 @@ import {
   PutEmailIdentityDkimAttributesCommand,
 } from "@aws-sdk/client-sesv2";
 
-const sesClient = new SESv2Client({
-  region: process.env.AWS_REGION || "us-east-1",
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-});
+/**
+ * Build a fresh SESv2 client per call. Mirrors the lazy pattern used in
+ * `digitalocean.ts` (PR #8): credentials and region are read from
+ * `process.env` at call time so credential rotation is safe and tests
+ * can mutate AWS env between cases without re-importing the module.
+ *
+ * `SESv2Client` construction is config + middleware wiring only — no
+ * network work — so per-call instantiation is negligible compared to
+ * the actual `.send()` call that follows.
+ */
+function getSesClient(): SESv2Client {
+  return new SESv2Client({
+    region: process.env.AWS_REGION || "us-east-1",
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    },
+  });
+}
 
 export interface EmailAttachment {
   filename: string;
@@ -114,7 +126,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<string> {
       : undefined,
   });
 
-  const response = await sesClient.send(command);
+  const response = await getSesClient().send(command);
   return response.MessageId!;
 }
 
@@ -189,7 +201,7 @@ export async function sendRawEmail(options: SendEmailOptions): Promise<string> {
     },
   });
 
-  const response = await sesClient.send(command);
+  const response = await getSesClient().send(command);
   return response.MessageId!;
 }
 
@@ -201,7 +213,7 @@ export async function verifyDomain(
   // back DkimAttributes.Tokens[0] which doubles as the SES verification
   // token used in the `_amazonses.<domain>` TXT record.
   try {
-    await sesClient.send(
+    await getSesClient().send(
       new CreateEmailIdentityCommand({ EmailIdentity: domain })
     );
   } catch (error: unknown) {
@@ -212,7 +224,7 @@ export async function verifyDomain(
     // identity already present — fall through to GetEmailIdentity
   }
 
-  const get = await sesClient.send(
+  const get = await getSesClient().send(
     new GetEmailIdentityCommand({ EmailIdentity: domain })
   );
 
@@ -227,21 +239,21 @@ export async function verifyDomain(
 export async function getDomainVerificationStatus(
   domain: string
 ): Promise<string> {
-  const response = await sesClient.send(
+  const response = await getSesClient().send(
     new GetEmailIdentityCommand({ EmailIdentity: domain })
   );
   return mapVerificationStatus(response.VerificationStatus);
 }
 
 export async function enableDomainDkim(domain: string): Promise<string[]> {
-  await sesClient.send(
+  await getSesClient().send(
     new PutEmailIdentityDkimAttributesCommand({
       EmailIdentity: domain,
       SigningEnabled: true,
     })
   );
 
-  const get = await sesClient.send(
+  const get = await getSesClient().send(
     new GetEmailIdentityCommand({ EmailIdentity: domain })
   );
 
@@ -249,14 +261,14 @@ export async function enableDomainDkim(domain: string): Promise<string[]> {
 }
 
 export async function getDomainDkimTokens(domain: string): Promise<string[]> {
-  const response = await sesClient.send(
+  const response = await getSesClient().send(
     new GetEmailIdentityCommand({ EmailIdentity: domain })
   );
   return response.DkimAttributes?.Tokens || [];
 }
 
 export async function deleteDomainIdentity(domain: string): Promise<void> {
-  await sesClient.send(
+  await getSesClient().send(
     new DeleteEmailIdentityCommand({ EmailIdentity: domain })
   );
 }
@@ -269,7 +281,7 @@ export async function createConfigurationSet(domain: string): Promise<string> {
       ConfigurationSetName: configSetName,
     });
 
-    await sesClient.send(command);
+    await getSesClient().send(command);
 
     return configSetName;
   } catch (error: unknown) {
