@@ -21,11 +21,11 @@ my-resend 는 [eibrahim/freeresend](https://github.com/eibrahim/freeresend) (MIT
 - 📊 **발송 로그** — 모든 발송 건의 전달 상태와 로그 추적
 - 🎯 **도메인 verify** — SES 도메인 인증 자동화
 - 🔒 **보안** — JWT 인증 + 견고한 API key 검증
-- 🐳 **Docker / Dokku 준비됨** — 컨테이너 배포 + Dokku one-touch deploy
+- 🐳 **Docker 지원** — Dockerfile 포함, Docker / Dokku / Fly.io / Coolify / k8s 등 컨테이너 호스팅 환경에서 자유롭게 자체 호스팅 가능
 
 ## 빠른 시작
 
-영어 README 의 [Quick Start](./README.md#quick-start) 섹션을 참조하세요. 본 한국어 문서는 추후 my-resend 자체의 시나리오(예: 홈서버 Dokku + Route53) 가 정리되는 대로 단계별 가이드로 확장될 예정입니다.
+영어 README 의 [Quick Start](./README.md#quick-start) 섹션을 참조하세요. 본 한국어 문서는 추후 단계별 배포 가이드(예: AWS SES 인증 + Route53 자동 등록 흐름) 가 정리되는 대로 확장될 예정입니다.
 
 ## upstream 과의 차이
 
@@ -37,7 +37,7 @@ my-resend 는 [eibrahim/freeresend](https://github.com/eibrahim/freeresend) (MIT
 | DNS 자동화 | DigitalOcean DNS only | DigitalOcean + AWS Route53 (provider-pluggable, 진행 중) |
 | API key prefix | `frs_` | `mrs_` (진행 중) |
 | 문서 언어 | English | English + 한국어 |
-| 배포 타깃 | 일반 호스팅 | 홈서버 Dokku 우선 (horbis 인프라 컨벤션) |
+| 배포 타깃 | 일반 호스팅 | 컨테이너 자체 호스팅 (Docker / Dokku / Fly.io / Coolify / k8s 등 자유) |
 
 ## 라이선스
 
