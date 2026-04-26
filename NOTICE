@@ -1,0 +1,48 @@
+my-resend
+=========
+
+Copyright (c) 2026 Park Seunghun / Orchemi
+Licensed under the MIT License (see LICENSE).
+
+
+Attribution
+-----------
+
+This project is a hard fork of:
+
+    eibrahim/freeresend
+    https://github.com/eibrahim/freeresend
+    Copyright (c) 2025 EliteCoders
+    MIT License
+
+Diverged at commit:
+
+    3439985c3d9f5dc187acc75d8a063d31c3d5fe9f
+    "add: umami + stripe metrics to stats reporter"
+    2026-04-21T15:40:20-04:00
+
+The diverge boundary is marked in this repository by the git tag
+`v0.1.0-my-resend`. The full git history of the upstream project is
+preserved (no squash) so that authorship of inherited code remains
+visible via `git blame` and `git log`.
+
+Optional upstream remote is configured fetch-only:
+
+    git remote add upstream https://github.com/eibrahim/freeresend.git
+    git remote set-url --push upstream no_push
+
+
+Planned Divergence
+------------------
+
+The following changes distinguish my-resend from the upstream project
+(some are still in progress; see the project plan for status):
+
+  * AWS SDK migration: SES v1 (`@aws-sdk/client-ses`)
+    -> SES v2 (`@aws-sdk/client-sesv2`)
+  * DNS automation: DigitalOcean DNS only
+    -> DigitalOcean DNS + AWS Route53 (provider-pluggable)
+  * API key prefix: `frs_` -> `mrs_`
+  * Branding, README localization (KO), and documentation rewrite
+  * Default deployment target: home-server (Dokku) with horbis infra
+    conventions
