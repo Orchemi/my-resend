@@ -1,16 +1,19 @@
 {
-  "name": "freeresend",
-  "version": "1.0.0",
-  "description": "Self-hosted, open-source alternative to Resend for sending transactional emails with Amazon SES",
-  "author": "Emad Ibrahim <eibrahim@gmail.com> (https://x.com/eibrahim)",
+  "name": "my-resend",
+  "version": "0.1.0",
+  "description": "Self-hosted, open-source mail gateway with a Resend-compatible API. Hard-fork of eibrahim/freeresend with planned SES v2 + Route53 support.",
+  "author": "Park Seunghun / Orchemi (https://github.com/Orchemi)",
+  "contributors": [
+    "Emad Ibrahim <eibrahim@gmail.com> (https://x.com/eibrahim) — original author of upstream eibrahim/freeresend"
+  ],
   "license": "MIT",
-  "homepage": "https://github.com/eibrahim/freeresend#readme",
+  "homepage": "https://github.com/Orchemi/my-resend#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/eibrahim/freeresend.git"
+    "url": "git+https://github.com/Orchemi/my-resend.git"
   },
   "bugs": {
-    "url": "https://github.com/eibrahim/freeresend/issues"
+    "url": "https://github.com/Orchemi/my-resend/issues"
   },
   "keywords": [
     "email",
@@ -18,8 +21,11 @@
     "alternative",
     "self-hosted",
     "amazon-ses",
+    "ses-v2",
+    "route53",
     "transactional-email",
     "email-api",
+    "mail-gateway",
     "nextjs",
     "typescript"
   ],
