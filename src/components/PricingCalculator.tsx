@@ -372,27 +372,27 @@ export default function PricingCalculator({
                     Self-Hosted Cost Breakdown:
                   </h4>
                   <div className="space-y-2 text-sm text-gray-600">
-                    {comparison.freeResendBreakdown.flatFee > 0 && (
+                    {comparison.myResendBreakdown.flatFee > 0 && (
                       <div className="flex justify-between">
                         <span>Monthly platform fee:</span>
-                        <span className="font-mono">{formatUSD(comparison.freeResendBreakdown.flatFee)}</span>
+                        <span className="font-mono">{formatUSD(comparison.myResendBreakdown.flatFee)}</span>
                       </div>
                     )}
                     <div className="flex justify-between">
                       <span>SES costs ({formatVolume(volume)} emails):</span>
-                      <span className="font-mono">{formatUSD(comparison.freeResendBreakdown.sesCost)}</span>
+                      <span className="font-mono">{formatUSD(comparison.myResendBreakdown.sesCost)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Hosting (VPS/Database):</span>
-                      <span className="font-mono">{formatUSD(comparison.freeResendBreakdown.hostingCost)}</span>
+                      <span className="font-mono">{formatUSD(comparison.myResendBreakdown.hostingCost)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Maintenance (DevOps/Updates):</span>
-                      <span className="font-mono">{formatUSD(comparison.freeResendBreakdown.maintenanceCost)}</span>
+                      <span className="font-mono">{formatUSD(comparison.myResendBreakdown.maintenanceCost)}</span>
                     </div>
                     <div className="border-t border-gray-300 pt-2 flex justify-between font-medium">
                       <span>Total monthly cost:</span>
-                      <span className="font-mono text-blue-600">{formatUSD(comparison.freeResendBreakdown.totalCost)}</span>
+                      <span className="font-mono text-blue-600">{formatUSD(comparison.myResendBreakdown.totalCost)}</span>
                     </div>
                   </div>
                   <div className="mt-3 p-3 bg-blue-50 rounded border border-blue-200">
@@ -452,17 +452,17 @@ export default function PricingCalculator({
 
           <div className="mb-2">
             <span className="text-3xl font-bold text-blue-600">
-              {formatUSD(comparison.freeResendCost)}
+              {formatUSD(comparison.myResendCost)}
             </span>
           </div>
 
           <div className="text-sm text-gray-500">
             <div>Includes hosting & maintenance</div>
             <div className="text-xs mt-1 space-y-0.5">
-              <div>• SES: {formatUSD(comparison.freeResendBreakdown.sesCost)}</div>
-              <div>• Infrastructure: {formatUSD(comparison.freeResendBreakdown.hostingCost + comparison.freeResendBreakdown.maintenanceCost)}</div>
-              {comparison.freeResendBreakdown.flatFee > 0 && (
-                <div>• Platform: {formatUSD(comparison.freeResendBreakdown.flatFee)}</div>
+              <div>• SES: {formatUSD(comparison.myResendBreakdown.sesCost)}</div>
+              <div>• Infrastructure: {formatUSD(comparison.myResendBreakdown.hostingCost + comparison.myResendBreakdown.maintenanceCost)}</div>
+              {comparison.myResendBreakdown.flatFee > 0 && (
+                <div>• Platform: {formatUSD(comparison.myResendBreakdown.flatFee)}</div>
               )}
             </div>
             {comparison.savingsAbs !== null && comparison.savingsAbs > 0 && (
@@ -648,7 +648,7 @@ export default function PricingCalculator({
 
               <div className="mt-4 p-3 bg-orange-50 rounded border border-orange-200">
                 <div className="text-xs text-orange-700">
-                  <strong>Reality Check:</strong> Most &quot;self-hosted savings&quot; calculators only show SES costs ({formatUSD(comparison.freeResendBreakdown.sesCost)})
+                  <strong>Reality Check:</strong> Most &quot;self-hosted savings&quot; calculators only show SES costs ({formatUSD(comparison.myResendBreakdown.sesCost)})
                   and ignore the {formatUSD(hostingCost + maintenanceCost)} in infrastructure and time costs.
                   Our calculator includes realistic production costs.
                 </div>
@@ -735,7 +735,7 @@ export default function PricingCalculator({
                       volume: volume,
                       tier: comparison.hostedTier.name,
                       hosted_cost: comparison.hostedCost,
-                      self_hosted_cost: comparison.freeResendCost,
+                      self_hosted_cost: comparison.myResendCost,
                       resend_cost: comparison.resendCost
                     });
                   }
@@ -767,6 +767,6 @@ export {
   HOSTED_PRICING_TIERS,
   getBestHostedTier,
   getHostedCost,
-  getFreeResendHostedCost
+  getMyResendHostedCost
 } from '../lib/pricing-calculator';
 export type { HostedPricingTier, HostedQuote } from '../lib/pricing-calculator';

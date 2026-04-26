@@ -386,32 +386,32 @@ export default function LandingPage() {
                   {[
                     {
                       feature: "Cost per 1,000 emails",
-                      freeresend: "$0.10 (SES rates)",
+                      myResend: "$0.10 (SES rates)",
                       premium: "$1.00 - $2.00+",
                     },
                     {
                       feature: "API Compatibility",
-                      freeresend: "100% Resend compatible",
+                      myResend: "100% Resend compatible",
                       premium: "Proprietary APIs",
                     },
                     {
                       feature: "Domain Setup Time",
-                      freeresend: "< 60 seconds (auto)",
+                      myResend: "< 60 seconds (auto)",
                       premium: "15+ minutes (manual)",
                     },
                     {
                       feature: "Self-Hosted",
-                      freeresend: "✓ Full control",
+                      myResend: "✓ Full control",
                       premium: "✗ Vendor lock-in",
                     },
                     {
                       feature: "Open Source",
-                      freeresend: "✓ MIT License",
+                      myResend: "✓ MIT License",
                       premium: "✗ Proprietary",
                     },
                     {
                       feature: "Custom Modifications",
-                      freeresend: "✓ Unlimited",
+                      myResend: "✓ Unlimited",
                       premium: "✗ Limited",
                     },
                   ].map((row, index) => (
@@ -420,7 +420,7 @@ export default function LandingPage() {
                         {row.feature}
                       </td>
                       <td className="px-6 py-4 text-sm text-center text-green-600 font-semibold">
-                        {row.freeresend}
+                        {row.myResend}
                       </td>
                       <td className="px-6 py-4 text-sm text-center text-gray-500">
                         {row.premium}
