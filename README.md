@@ -1,10 +1,14 @@
-# FreeResend
+# my-resend
 
-**A self-hosted, open-source alternative to Resend for sending transactional emails.**
+> 🌐 **Languages**: **English** · [한국어](./README.ko.md)
 
-FreeResend allows you to host your own email service using Amazon SES and optionally Digital Ocean for DNS management. It provides a Resend-compatible API so you can use it as a drop-in replacement.
+**A self-hosted, open-source mail gateway with a Resend-compatible API.**
 
-> 📰 **Stay updated**: Get the latest frontend development insights delivered weekly with [**Frontend Weekly**](https://www.frontendweekly.co/) - curated by the author of FreeResend!
+my-resend is a hard fork of [eibrahim/freeresend](https://github.com/eibrahim/freeresend) (MIT) — see [NOTICE](./NOTICE) for full attribution and the divergence point. It hosts your own email service using Amazon SES (with planned migration to SES v2) and supports DNS automation via DigitalOcean and AWS Route53. The API is compatible with the Resend SDK, so existing Resend users can migrate by setting `RESEND_BASE_URL` only.
+
+> ⚠️ **Status**: my-resend is in active divergence from upstream. Branding, SES v2 migration, and Route53 support are in progress. Until those land, the README below largely reflects upstream behavior.
+
+> 📰 **Original author's content**: The upstream project's author runs [**Frontend Weekly**](https://www.frontendweekly.co/) — credit to them for the original work this is based on.
 
 ## Features
 
