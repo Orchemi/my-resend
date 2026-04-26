@@ -7,11 +7,7 @@ import {
   enableDomainDkim,
   getDomainDkimTokens,
 } from "./ses";
-import {
-  setupDomainDNS,
-  verifyDomainOwnership,
-  type DODomainRecord,
-} from "./digitalocean";
+import { setupDomainDNS, verifyDomainOwnership } from "./dns-provider";
 import type { Domain } from "./database";
 
 export interface DNSRecord {
@@ -25,7 +21,12 @@ export interface DomainSetupResult {
   domain: Domain;
   dnsRecords: DNSRecord[];
   sesConfigurationSet?: string;
-  digitalOceanRecords?: DNSRecord[];
+  /**
+   * Records that the active DNS provider actually created or updated as
+   * part of this setup call. Provider-specific shapes are normalized in
+   * `dns-provider.ts` before reaching this layer.
+   */
+  dnsProviderRecords?: DNSRecord[];
   setupInstructions: string;
 }
 
@@ -65,16 +66,6 @@ function safeJSONStringify(obj: unknown): string {
     }
     return "[]";
   }
-}
-
-// Helper function to convert DODomainRecord to DNSRecord
-function convertDORecordToDNSRecord(doRecord: DODomainRecord): DNSRecord {
-  return {
-    type: doRecord.type,
-    name: doRecord.name,
-    value: doRecord.data,
-    ttl: doRecord.ttl,
-  };
 }
 
 export async function addDomain(
@@ -123,22 +114,21 @@ export async function addDomain(
       dkimTokens
     );
 
-    // 5. Setup DNS records in Digital Ocean (if configured)
-    let digitalOceanRecords: DNSRecord[] = [];
+    // 5. Setup DNS records via the configured DNS provider (if any)
+    let dnsProviderRecords: DNSRecord[] = [];
     let setupInstructions = "";
 
     try {
-      const isDomainInDO = await verifyDomainOwnership(domainName);
-      if (isDomainInDO) {
-        const doRecords = await setupDomainDNS(domainName, dnsRecords);
-        digitalOceanRecords = doRecords.map(convertDORecordToDNSRecord);
+      const isDomainOwned = await verifyDomainOwnership(domainName);
+      if (isDomainOwned) {
+        dnsProviderRecords = await setupDomainDNS(domainName, dnsRecords);
         setupInstructions =
-          "DNS records have been automatically created in Digital Ocean.";
+          "DNS records have been automatically created via the configured DNS provider.";
       } else {
-        setupInstructions = `Domain not found in Digital Ocean. Please create the DNS records manually or add the domain to your Digital Ocean account first.`;
+        setupInstructions = `Domain not managed by the configured DNS provider. Please create the DNS records manually or add the domain to your DNS provider first.`;
       }
     } catch (error: unknown) {
-      console.warn("Digital Ocean setup failed:", error);
+      console.warn("DNS provider setup failed:", error);
       setupInstructions =
         "DNS records need to be created manually. Please add the following records to your DNS provider:";
     }
@@ -171,7 +161,7 @@ export async function addDomain(
       domain,
       dnsRecords,
       sesConfigurationSet: configurationSet,
-      digitalOceanRecords,
+      dnsProviderRecords,
       setupInstructions,
     };
   } catch (error: unknown) {
@@ -193,7 +183,7 @@ async function verifyAndCompleteExistingDomain(
   let needsUpdate = false;
   const updateFields: Record<string, string> = {};
   let setupInstructions = "";
-  let digitalOceanRecords: DNSRecord[] = [];
+  let dnsProviderRecords: DNSRecord[] = [];
 
   try {
     // 1. Check SES domain status
@@ -276,34 +266,33 @@ async function verifyAndCompleteExistingDomain(
       dkimTokens
     );
 
-    // 5. Check/setup Digital Ocean DNS
+    // 5. Check/setup DNS via the configured DNS provider
     try {
-      const isDomainInDO = await verifyDomainOwnership(domainName);
-      if (isDomainInDO) {
+      const isDomainOwned = await verifyDomainOwnership(domainName);
+      if (isDomainOwned) {
         console.log(
-          `Domain ${domainName} found in Digital Ocean, checking DNS setup...`
+          `Domain ${domainName} managed by configured DNS provider, checking DNS setup...`
         );
         try {
-          const doRecords = await setupDomainDNS(domainName, dnsRecords);
-          digitalOceanRecords = doRecords.map(convertDORecordToDNSRecord);
+          dnsProviderRecords = await setupDomainDNS(domainName, dnsRecords);
           setupInstructions =
-            "DNS records have been verified/updated in Digital Ocean.";
+            "DNS records have been verified/updated via the configured DNS provider.";
         } catch (dnsError: unknown) {
           const dnsErrorMessage =
             dnsError instanceof Error ? dnsError.message : String(dnsError);
           console.warn(`DNS setup failed: ${dnsErrorMessage}`);
           setupInstructions =
-            "DNS records need to be updated manually in Digital Ocean.";
+            "DNS records need to be updated manually in your DNS provider.";
         }
       } else {
-        setupInstructions = `Domain not found in Digital Ocean. Please add the domain to your Digital Ocean account or create DNS records manually.`;
+        setupInstructions = `Domain not managed by the configured DNS provider. Please add the domain to your DNS provider or create DNS records manually.`;
       }
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      console.warn(`Digital Ocean check failed: ${errorMessage}`);
+      console.warn(`DNS provider check failed: ${errorMessage}`);
       setupInstructions =
-        "Unable to verify Digital Ocean setup. Please check DNS records manually.";
+        "Unable to verify DNS provider setup. Please check DNS records manually.";
     }
 
     // 6. Update database if needed
@@ -336,7 +325,7 @@ async function verifyAndCompleteExistingDomain(
           domain: updatedDomain,
           dnsRecords,
           sesConfigurationSet: configurationSet,
-          digitalOceanRecords,
+          dnsProviderRecords,
           setupInstructions: `Domain already exists. ${setupInstructions}`,
         };
       }
@@ -347,7 +336,7 @@ async function verifyAndCompleteExistingDomain(
       domain: existingDomain,
       dnsRecords,
       sesConfigurationSet: configurationSet,
-      digitalOceanRecords,
+      dnsProviderRecords,
       setupInstructions: `Domain already exists. ${setupInstructions}`,
     };
   } catch (error: unknown) {
