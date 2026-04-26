@@ -9,11 +9,17 @@ import { mockClient } from "aws-sdk-client-mock";
 import {
   Route53Client,
   GetHostedZoneCommand,
+  ListHostedZonesByNameCommand,
   ListResourceRecordSetsCommand,
   ChangeResourceRecordSetsCommand,
 } from "@aws-sdk/client-route-53";
 
-import { setupDomainDNS, verifyDomainOwnership } from "../route53";
+import {
+  resolveHostedZoneId,
+  setupDomainDNS,
+  verifyDomainOwnership,
+  __resetZoneIdCacheForTests,
+} from "../route53";
 import type { DnsProviderRecord } from "../dns-provider";
 
 const route53Mock = mockClient(Route53Client);
@@ -22,6 +28,7 @@ const ORIGINAL_HOSTED_ZONE_ID = process.env.AWS_HOSTED_ZONE_ID;
 
 beforeEach(() => {
   route53Mock.reset();
+  __resetZoneIdCacheForTests();
 });
 
 afterEach(() => {
@@ -33,8 +40,15 @@ afterEach(() => {
 });
 
 describe("verifyDomainOwnership", () => {
-  it("returns false (and never calls SDK) when AWS_HOSTED_ZONE_ID is unset", async () => {
+  it("returns false (without calling GetHostedZone) when env is unset and no zone matches the domain", async () => {
     delete process.env.AWS_HOSTED_ZONE_ID;
+    // Auto-discovery is exercised, but the account has no matching zone
+    // for example.com (or any parent). resolveHostedZoneId returns
+    // undefined, so verifyDomainOwnership short-circuits to false
+    // without invoking GetHostedZone.
+    route53Mock.on(ListHostedZonesByNameCommand).resolves({
+      HostedZones: [],
+    });
 
     const result = await verifyDomainOwnership("example.com");
 
@@ -101,8 +115,11 @@ describe("setupDomainDNS", () => {
     ).toHaveLength(0);
   });
 
-  it("throws when AWS_HOSTED_ZONE_ID is unset", async () => {
+  it("throws when env is unset and no hosted zone matches the domain", async () => {
     delete process.env.AWS_HOSTED_ZONE_ID;
+    route53Mock.on(ListHostedZonesByNameCommand).resolves({
+      HostedZones: [],
+    });
 
     await expect(
       setupDomainDNS("example.com", [
@@ -310,5 +327,162 @@ describe("setupDomainDNS", () => {
     await expect(setupDomainDNS("example.com", records)).rejects.toThrow(
       "InvalidChangeBatch"
     );
+  });
+});
+
+describe("resolveHostedZoneId", () => {
+  // The module-level memoization cache is shared across cases. Reset
+  // via the test-only export so each case starts cold; mockClient stays
+  // active because it patches the singleton Route53Client.prototype.
+  beforeEach(() => {
+    __resetZoneIdCacheForTests();
+    delete process.env.AWS_HOSTED_ZONE_ID;
+  });
+
+  it("returns the env value verbatim when AWS_HOSTED_ZONE_ID is set, without calling the SDK", async () => {
+    process.env.AWS_HOSTED_ZONE_ID = "Z123EXAMPLE";
+
+    const result = await resolveHostedZoneId("example.com");
+
+    expect(result).toBe("Z123EXAMPLE");
+    expect(
+      route53Mock.commandCalls(ListHostedZonesByNameCommand)
+    ).toHaveLength(0);
+  });
+
+  it("auto-discovers an exact-match hosted zone and strips the /hostedzone/ prefix", async () => {
+    route53Mock.on(ListHostedZonesByNameCommand).resolves({
+      HostedZones: [
+        {
+          Id: "/hostedzone/Z0EXACTMATCH",
+          Name: "example.com.",
+          CallerReference: "ref",
+        },
+      ],
+    });
+
+    const result = await resolveHostedZoneId("example.com");
+
+    expect(result).toBe("Z0EXACTMATCH");
+    const calls = route53Mock.commandCalls(ListHostedZonesByNameCommand);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].args[0].input).toMatchObject({
+      DNSName: "example.com.",
+      MaxItems: 1,
+    });
+  });
+
+  it("walks up to the parent zone for a one-level subdomain (mail.example.com -> example.com.)", async () => {
+    route53Mock
+      .on(ListHostedZonesByNameCommand, {
+        DNSName: "mail.example.com.",
+        MaxItems: 1,
+      })
+      .resolves({
+        // Lexicographically next zone — name does NOT match the candidate.
+        HostedZones: [
+          {
+            Id: "/hostedzone/Z0OTHER",
+            Name: "other.example.org.",
+            CallerReference: "ref",
+          },
+        ],
+      })
+      .on(ListHostedZonesByNameCommand, {
+        DNSName: "example.com.",
+        MaxItems: 1,
+      })
+      .resolves({
+        HostedZones: [
+          {
+            Id: "/hostedzone/Z0PARENT",
+            Name: "example.com.",
+            CallerReference: "ref",
+          },
+        ],
+      });
+
+    const result = await resolveHostedZoneId("mail.example.com");
+
+    expect(result).toBe("Z0PARENT");
+    expect(
+      route53Mock.commandCalls(ListHostedZonesByNameCommand)
+    ).toHaveLength(2);
+  });
+
+  it("walks up multiple labels for a multi-level subdomain (a.b.example.com -> example.com.)", async () => {
+    route53Mock
+      .on(ListHostedZonesByNameCommand, {
+        DNSName: "a.b.example.com.",
+        MaxItems: 1,
+      })
+      .resolves({ HostedZones: [] })
+      .on(ListHostedZonesByNameCommand, {
+        DNSName: "b.example.com.",
+        MaxItems: 1,
+      })
+      .resolves({ HostedZones: [] })
+      .on(ListHostedZonesByNameCommand, {
+        DNSName: "example.com.",
+        MaxItems: 1,
+      })
+      .resolves({
+        HostedZones: [
+          {
+            Id: "/hostedzone/Z0ROOT",
+            Name: "example.com.",
+            CallerReference: "ref",
+          },
+        ],
+      });
+
+    const result = await resolveHostedZoneId("a.b.example.com");
+
+    expect(result).toBe("Z0ROOT");
+    expect(
+      route53Mock.commandCalls(ListHostedZonesByNameCommand)
+    ).toHaveLength(3);
+  });
+
+  it("returns undefined when no hosted zone matches the domain or any parent", async () => {
+    route53Mock.on(ListHostedZonesByNameCommand).resolves({
+      HostedZones: [
+        {
+          Id: "/hostedzone/Z0UNRELATED",
+          Name: "unrelated.example.net.",
+          CallerReference: "ref",
+        },
+      ],
+    });
+
+    const result = await resolveHostedZoneId("mail.example.com");
+
+    expect(result).toBeUndefined();
+    // mail.example.com -> example.com -> com (1 label, walk stops). At
+    // least one SDK call must have been issued.
+    expect(
+      route53Mock.commandCalls(ListHostedZonesByNameCommand).length
+    ).toBeGreaterThanOrEqual(1);
+  });
+
+  it("memoizes resolved zone IDs per domain (second call issues no SDK request)", async () => {
+    route53Mock.on(ListHostedZonesByNameCommand).resolves({
+      HostedZones: [
+        {
+          Id: "/hostedzone/Z0CACHED",
+          Name: "example.com.",
+          CallerReference: "ref",
+        },
+      ],
+    });
+
+    const first = await resolveHostedZoneId("example.com");
+    const second = await resolveHostedZoneId("example.com");
+
+    expect(first).toBe("Z0CACHED");
+    expect(second).toBe("Z0CACHED");
+    expect(
+      route53Mock.commandCalls(ListHostedZonesByNameCommand)
+    ).toHaveLength(1);
   });
 });

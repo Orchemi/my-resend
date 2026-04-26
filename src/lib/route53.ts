@@ -5,8 +5,12 @@
  * that `digitalocean.ts` exposes, normalized to the unified
  * `DnsProviderRecord` shape consumed by `dns-provider.ts`.
  *
- * Required env:
- *   - `AWS_HOSTED_ZONE_ID` — the hosted zone in which records are managed.
+ * Env:
+ *   - `AWS_HOSTED_ZONE_ID` (optional) — the hosted zone in which records
+ *     are managed. If unset, the matching hosted zone is auto-discovered
+ *     from the sending domain via `ListHostedZonesByName`, walking up to
+ *     parent zones for subdomains (e.g. `mail.example.com` resolves to
+ *     the `example.com` zone).
  *   - `AWS_REGION` (optional, defaults to `us-east-1`; Route53 is global
  *     but the SDK still wants a region).
  *   - `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (or any other AWS
@@ -18,6 +22,7 @@
 import {
   Route53Client,
   GetHostedZoneCommand,
+  ListHostedZonesByNameCommand,
   ListResourceRecordSetsCommand,
   ChangeResourceRecordSetsCommand,
   type Change,
@@ -27,34 +32,118 @@ import {
 
 import type { DnsProviderRecord } from "./dns-provider";
 
-const route53Client = new Route53Client({
-  region: process.env.AWS_REGION || "us-east-1",
-});
-
-function getHostedZoneId(): string | undefined {
-  return process.env.AWS_HOSTED_ZONE_ID;
+/**
+ * Build a fresh Route53 client per call. Mirrors the lazy pattern used in
+ * `digitalocean.ts` (PR #8) and `ses.ts` (PR #10): credentials and region
+ * are read from `process.env` at call time so credential rotation is safe
+ * and tests can mutate AWS env between cases without re-importing the
+ * module. Client construction is config + middleware wiring only — no
+ * network work — so per-call instantiation is negligible compared to
+ * the actual `.send()` call that follows.
+ */
+function getRoute53Client(): Route53Client {
+  return new Route53Client({
+    region: process.env.AWS_REGION || "us-east-1",
+  });
 }
 
 /**
- * Verify that the configured hosted zone exists and is accessible. The
- * hosted zone is treated as the source of truth for "which domains do
- * we own" — operators map subdomains under one or more zones at the
- * AWS account level.
+ * Per-process memoization of `domain -> hosted zone ID` lookups. Hosted
+ * zones rarely move between accounts, so a process-lifetime cache is
+ * acceptable — restart to invalidate. The cache is keyed on the input
+ * domain (not the matched zone name) so callers can pass any form they
+ * like and still hit the cache cheaply.
+ */
+const zoneIdCache = new Map<string, string>();
+
+/**
+ * Resolve the Route53 hosted zone ID that owns `domain`.
+ *
+ * Resolution order:
+ *   1. If `AWS_HOSTED_ZONE_ID` is set, return it verbatim (no SDK call).
+ *      Explicit configuration always wins so operators can pin a
+ *      specific zone in multi-zone accounts.
+ *   2. If we previously resolved this exact domain, return the cached
+ *      zone ID (no SDK call).
+ *   3. Walk up the domain labels — `mail.example.com` -> `example.com`
+ *      -> stop — calling `ListHostedZonesByName` for each candidate.
+ *      The first candidate whose zone Name (with trailing dot) matches
+ *      a hosted zone in the account wins. The matched zone ID is
+ *      cached and returned without the `/hostedzone/` SDK prefix.
+ *   4. If no candidate matches any hosted zone, returns `undefined`
+ *      so callers can fall back to their existing "no zone" branches
+ *      (verify -> false, setup -> throw).
+ */
+export async function resolveHostedZoneId(
+  domain: string
+): Promise<string | undefined> {
+  const envValue = process.env.AWS_HOSTED_ZONE_ID;
+  if (envValue) {
+    return envValue;
+  }
+
+  const cached = zoneIdCache.get(domain);
+  if (cached) {
+    return cached;
+  }
+
+  let candidate = domain;
+  // Walk up while the candidate has at least one dot — i.e. has a
+  // parent. A bare TLD like `com` is never a sensible hosted zone for
+  // sending, so we stop there.
+  while (candidate.includes(".")) {
+    const dnsName = `${candidate}.`;
+    const response = await getRoute53Client().send(
+      new ListHostedZonesByNameCommand({
+        DNSName: dnsName,
+        MaxItems: 1,
+      })
+    );
+
+    const firstZone = response.HostedZones?.[0];
+    if (firstZone?.Name === dnsName && firstZone.Id) {
+      const stripped = firstZone.Id.replace(/^\/hostedzone\//, "");
+      zoneIdCache.set(domain, stripped);
+      return stripped;
+    }
+
+    // Strip the leftmost label and try the parent.
+    const nextDot = candidate.indexOf(".");
+    candidate = candidate.slice(nextDot + 1);
+  }
+
+  return undefined;
+}
+
+/**
+ * Test-only: clear the in-process hosted-zone cache so each test case
+ * starts cold. Underscored to signal "internal" — not part of the
+ * public API. Production code should never call this.
+ */
+export function __resetZoneIdCacheForTests(): void {
+  zoneIdCache.clear();
+}
+
+/**
+ * Verify that the hosted zone owning `domain` exists and is accessible.
+ *
+ * The hosted zone is resolved via `resolveHostedZoneId(domain)`, which
+ * either returns the explicit `AWS_HOSTED_ZONE_ID` env value or
+ * auto-discovers a zone via `ListHostedZonesByName` (walking up to
+ * parent zones for subdomains). When no zone can be resolved we return
+ * `false` — the same answer the original env-only implementation gave
+ * when `AWS_HOSTED_ZONE_ID` was unset.
  */
 export async function verifyDomainOwnership(
   domain: string
 ): Promise<boolean> {
-  // The hosted zone is the source of truth; the domain argument exists
-  // for parity with other providers (digitalocean.ts uses it directly).
-  // Logged at debug level so it's discoverable but not noisy.
-  void domain;
-  const hostedZoneId = getHostedZoneId();
+  const hostedZoneId = await resolveHostedZoneId(domain);
   if (!hostedZoneId) {
     return false;
   }
 
   try {
-    const response = await route53Client.send(
+    const response = await getRoute53Client().send(
       new GetHostedZoneCommand({ Id: hostedZoneId })
     );
     return Boolean(response.HostedZone);
@@ -87,10 +176,10 @@ export async function setupDomainDNS(
     return [];
   }
 
-  const hostedZoneId = getHostedZoneId();
+  const hostedZoneId = await resolveHostedZoneId(domain);
   if (!hostedZoneId) {
     throw new Error(
-      "AWS_HOSTED_ZONE_ID is not set; cannot manage Route53 DNS records."
+      `AWS_HOSTED_ZONE_ID is not set and no matching hosted zone found for domain '${domain}'.`
     );
   }
 
@@ -115,7 +204,7 @@ export async function setupDomainDNS(
     return [];
   }
 
-  await route53Client.send(
+  await getRoute53Client().send(
     new ChangeResourceRecordSetsCommand({
       HostedZoneId: hostedZoneId,
       ChangeBatch: {
@@ -143,7 +232,7 @@ async function listAllResourceRecordSets(
 
   // Cap to avoid runaway loops in pathological cases.
   for (let i = 0; i < 50; i++) {
-    const response = await route53Client.send(
+    const response = await getRoute53Client().send(
       new ListResourceRecordSetsCommand({
         HostedZoneId: hostedZoneId,
         StartRecordName: startRecordName,
