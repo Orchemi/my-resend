@@ -7,31 +7,28 @@ import {
   enableDomainDkim,
   getDomainDkimTokens,
 } from "./ses";
-import { setupDomainDNS, verifyDomainOwnership } from "./dns-provider";
+import {
+  setupDomainDNS,
+  verifyDomainOwnership,
+  type DnsProviderRecord,
+} from "./dns-provider";
 import type { Domain } from "./database";
-
-export interface DNSRecord {
-  type: string;
-  name: string;
-  value: string;
-  ttl?: number;
-}
 
 export interface DomainSetupResult {
   domain: Domain;
-  dnsRecords: DNSRecord[];
+  dnsRecords: DnsProviderRecord[];
   sesConfigurationSet?: string;
   /**
    * Records that the active DNS provider actually created or updated as
    * part of this setup call. Provider-specific shapes are normalized in
    * `dns-provider.ts` before reaching this layer.
    */
-  dnsProviderRecords?: DNSRecord[];
+  dnsProviderRecords?: DnsProviderRecord[];
   setupInstructions: string;
 }
 
 // Helper function to safely parse DNS records (handles both string and object)
-function safeParseDNSRecords(dnsRecords: unknown): DNSRecord[] {
+function safeParseDNSRecords(dnsRecords: unknown): DnsProviderRecord[] {
   if (!dnsRecords) return [];
   if (typeof dnsRecords === "string") {
     try {
@@ -115,7 +112,7 @@ export async function addDomain(
     );
 
     // 5. Setup DNS records via the configured DNS provider (if any)
-    let dnsProviderRecords: DNSRecord[] = [];
+    let dnsProviderRecords: DnsProviderRecord[] = [];
     let setupInstructions = "";
 
     try {
@@ -183,7 +180,7 @@ async function verifyAndCompleteExistingDomain(
   let needsUpdate = false;
   const updateFields: Record<string, string> = {};
   let setupInstructions = "";
-  let dnsProviderRecords: DNSRecord[] = [];
+  let dnsProviderRecords: DnsProviderRecord[] = [];
 
   try {
     // 1. Check SES domain status
