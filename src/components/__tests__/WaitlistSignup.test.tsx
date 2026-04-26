@@ -324,8 +324,14 @@ describe("WaitlistSignup Component", () => {
 
   describe("Analytics Tracking", () => {
     beforeEach(() => {
-      // Set NODE_ENV to development for console logging
-      process.env.NODE_ENV = "development";
+      // TypeScript 5+ types `process.env.NODE_ENV` as readonly. Use
+      // defineProperty so the assignment compiles and the value can be
+      // reset between test runs.
+      Object.defineProperty(process.env, "NODE_ENV", {
+        value: "development",
+        configurable: true,
+        writable: true,
+      });
     });
 
     it("tracks form view on mount", () => {

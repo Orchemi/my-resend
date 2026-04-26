@@ -8,6 +8,7 @@ import {
   CreateConfigurationSetCommand,
   PutEmailIdentityDkimAttributesCommand,
 } from "@aws-sdk/client-sesv2";
+import type { DnsProviderRecord } from "./dns-provider";
 
 /**
  * Build a fresh SESv2 client per call. Mirrors the lazy pattern used in
@@ -312,7 +313,7 @@ export function generateDNSRecords(
   domain: string,
   verificationToken: string,
   dkimTokens: string[] = []
-) {
+): DnsProviderRecord[] {
   const records = [
     {
       type: "TXT",
