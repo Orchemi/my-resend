@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import { query } from "./database";
 import type { ApiKey } from "./database";
 
+export const API_KEY_PREFIX = "mrs"; // mrs = my-resend
+
 export interface ApiKeyWithKey extends Omit<ApiKey, "key_hash"> {
   key: string;
 }
@@ -32,7 +34,7 @@ export async function generateApiKey(
   // Generate a secure API key with prefix
   const keyId = nanoid(8);
   const keySecret = nanoid(32);
-  const apiKey = `frs_${keyId}_${keySecret}`; // frs = FreeResend
+  const apiKey = `${API_KEY_PREFIX}_${keyId}_${keySecret}`;
 
   // Hash the key for storage
   const keyHash = await bcrypt.hash(apiKey, 10);
@@ -47,7 +49,7 @@ export async function generateApiKey(
         domainId,
         keyName,
         keyHash,
-        `frs_${keyId}`,
+        `${API_KEY_PREFIX}_${keyId}`,
         JSON.stringify(permissions),
       ]
     );
@@ -82,7 +84,7 @@ export async function verifyApiKey(apiKey: string): Promise<ApiKey | null> {
   const keyId_part = apiKey.substring(firstUnderscore + 1, secondUnderscore);
   const secret_part = apiKey.substring(secondUnderscore + 1);
 
-  if (prefix_part !== "frs" || !keyId_part || !secret_part) {
+  if (prefix_part !== API_KEY_PREFIX || !keyId_part || !secret_part) {
     return null;
   }
 

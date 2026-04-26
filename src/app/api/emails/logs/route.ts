@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyJWT } from "@/lib/auth";
-import { verifyApiKey } from "@/lib/api-keys";
+import { verifyApiKey, API_KEY_PREFIX } from "@/lib/api-keys";
 import { query } from "@/lib/database";
 
 // Helper function to safely parse email arrays (handles both string and array)
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
     let domainIds: string[] = [];
 
-    if (authHeader.startsWith("Bearer frs_")) {
+    if (authHeader.startsWith(`Bearer ${API_KEY_PREFIX}_`)) {
       // API key authentication
       const apiKey = await verifyApiKey(authHeader.substring(7));
       if (!apiKey) {
