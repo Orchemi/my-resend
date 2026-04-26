@@ -31,12 +31,15 @@ npm start           # Start production server
 
 # Code Quality
 npm run lint        # Run ESLint (next/core-web-vitals)
+npm run typecheck   # Run tsc --noEmit (strict typecheck, used as a CI gate)
 
 # Testing (Jest)
 npm test            # Run all unit + integration tests
 npm run test:watch  # Re-run on change
 npm run test:coverage
 ```
+
+CI runs `lint`, `typecheck`, `test`, and `build` on every pull request and on pushes to `develop` / `production` (`.github/workflows/ci.yml`). The `tsc --noEmit` baseline must stay at zero errors.
 
 There are no `node test-email.js` / `./test-curl.sh` scripts in active use — those are upstream artifacts. The Jest suite under `src/lib/__tests__/` and `src/components/__tests__/` is the source of truth for verification.
 
