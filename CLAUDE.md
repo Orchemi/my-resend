@@ -4,16 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-FreeResend is a self-hosted, open-source alternative to Resend for sending transactional emails. It provides 100% Resend-compatible API using Amazon SES for email delivery, with optional Digital Ocean DNS automation for domain setup.
+MyResend is a self-hosted, open-source mail gateway with a Resend-compatible API. It uses Amazon SES as the delivery backend and supports automatic DNS record management through either DigitalOcean DNS or AWS Route53 (selectable at runtime via `DNS_PROVIDER`).
+
+The project is a hard fork of [eibrahim/freeresend](https://github.com/eibrahim/freeresend) (MIT). Attribution and the divergence boundary are documented in `NOTICE`.
 
 **Key Technologies:**
-- Next.js 15 (App Router)
-- TypeScript
-- PostgreSQL (direct connection, migrated from Supabase)
-- Amazon SES SDK v3
-- Digital Ocean API
-- JWT authentication
-- bcryptjs for password hashing
+- Next.js 15 (App Router, Turbopack dev)
+- React 19 + TypeScript 5
+- PostgreSQL (direct connection via `pg`, no ORM)
+- AWS SES v2 SDK (`@aws-sdk/client-sesv2`)
+- AWS Route53 SDK (`@aws-sdk/client-route-53`) — optional DNS provider
+- DigitalOcean API (axios) — optional DNS provider
+- Tailwind CSS v4
+- JWT authentication, bcryptjs for password hashing
+- Jest + ts-jest + `aws-sdk-client-mock` for unit tests
 
 ## Development Commands
 
@@ -26,66 +30,82 @@ npm run build       # Build for production
 npm start           # Start production server
 
 # Code Quality
-npm run lint        # Run ESLint
+npm run lint        # Run ESLint (next/core-web-vitals)
 
-# Testing
-node test-email.js  # Comprehensive email testing (API + Resend SDK)
-./test-curl.sh      # Quick cURL-based API test
+# Testing (Jest)
+npm test            # Run all unit + integration tests
+npm run test:watch  # Re-run on change
+npm run test:coverage
 ```
+
+There are no `node test-email.js` / `./test-curl.sh` scripts in active use — those are upstream artifacts. The Jest suite under `src/lib/__tests__/` and `src/components/__tests__/` is the source of truth for verification.
 
 ## Architecture Overview
 
 ### Core Structure
-- **API Layer**: Next.js App Router API routes (`/src/app/api/`)
-- **Business Logic**: Modular libraries in `/src/lib/`
-- **Database**: Direct PostgreSQL with connection pooling
-- **Frontend**: React dashboard components in `/src/components/`
+- **API Layer**: Next.js App Router API routes (`src/app/api/`)
+- **Business Logic**: Modular libraries in `src/lib/`
+- **DNS Provider Abstraction**: `src/lib/dns-provider.ts` (dispatched by `DNS_PROVIDER`)
+- **Database**: Direct PostgreSQL via `pg` connection pool
+- **Frontend**: React dashboard components in `src/components/`
 
 ### Database Architecture
-The project uses **direct PostgreSQL** (not Supabase) with:
-- Connection pooling via `pg` package
+The project uses **direct PostgreSQL** (no ORM, no Supabase) with:
+- Connection pooling via the `pg` package
 - Transaction support
 - Auto-updating timestamps via triggers
 - UUID primary keys
 - JSONB fields for flexible data (DNS records, email arrays)
 
 **Key Tables:**
-- `users` - Admin user accounts
-- `domains` - Email sending domains with SES integration
-- `api_keys` - API authentication keys (bcrypt hashed)
-- `email_logs` - All sent email records with delivery status
-- `webhook_events` - SES delivery event processing
+- `users` — admin user accounts
+- `domains` — email sending domains with SES integration
+- `api_keys` — API authentication keys (bcrypt-hashed)
+- `email_logs` — all sent email records with delivery status
+- `webhook_events` — SES delivery event processing
+
+The schema lives in `database.sql`; there is no migration framework — apply once on first deploy.
 
 ### Integration Architecture
 
-**Amazon SES Integration** (`/src/lib/ses.ts`):
-- Domain verification and DKIM setup
-- Email sending (simple and raw with attachments)
-- Configuration sets and webhook handling
-- Bounce/complaint processing
+**Amazon SES** (`src/lib/ses.ts`):
+- v2 SDK (`@aws-sdk/client-sesv2`) — `SendEmailCommand`, `CreateEmailIdentityCommand`, `GetEmailIdentityCommand`, `PutEmailIdentityDkimAttributesCommand`, `DeleteEmailIdentityCommand`, `CreateConfigurationSetCommand`
+- External function signatures preserve the v1-era return shapes so consumers (`domains.ts`, API routes) stay provider-detail-free
+- `verifyDomain` swallows `AlreadyExistsException` and falls through to `GetEmailIdentity` to keep idempotency
 
-**Digital Ocean DNS** (`/src/lib/digitalocean.ts`):
-- Automatic DNS record creation (TXT, MX, SPF, DMARC, DKIM)
-- Domain validation
-- Error handling and manual fallback
+**DNS Provider Abstraction** (`src/lib/dns-provider.ts`):
+- Selected at runtime by `DNS_PROVIDER` (`digitalocean` | `route53`, default `digitalocean`)
+- Exposes `setupDomainDNS(domain, dnsRecords)` and `verifyDomainOwnership(domain)`
+- Normalises every provider's native record shape to `DnsProviderRecord { type, name, value, ttl }` so consumers stay provider-agnostic
+- Unknown `DNS_PROVIDER` values throw (fail-fast) — silent fallback would mask typos
 
-**API Key System** (`/src/lib/api-keys.ts`):
-- Format: `frs_{keyId}_{secretPart}` 
-- bcrypt hashing with prefix for identification
+**DigitalOcean DNS** (`src/lib/digitalocean.ts`):
+- axios-based client targeting the DO v2 API
+- Domain validation, record creation/update/delete, MX priority handling, exponential backoff for 429s
+
+**AWS Route53** (`src/lib/route53.ts`):
+- v3 SDK (`@aws-sdk/client-route-53`)
+- Idempotent UPSERT via a single `ChangeResourceRecordSetsCommand` batch — lists existing records first and skips no-op rows
+- Preserves CNAME trailing dots and quotes TXT values per RFC 1035
+- Requires `AWS_HOSTED_ZONE_ID`; without it `verifyDomainOwnership` returns `false` and `setupDomainDNS` throws
+
+**API Key System** (`src/lib/api-keys.ts`):
+- Format: `mrs_{keyId}_{secretPart}`
+- bcrypt hashing with the `mrs_` prefix preserved for identification
 - Domain-scoped permissions
 
 ## API Design Patterns
 
 ### Resend Compatibility
-The project maintains **100% compatibility** with Resend SDK by:
-- Matching exact API endpoint structure (`/api/emails`)
-- Supporting same request/response formats
-- Using environment variable `RESEND_BASE_URL` for endpoint override
+The project maintains 100% compatibility with the Resend Node.js SDK by:
+- Matching the exact API endpoint structure (`/api/emails`)
+- Supporting the same request/response formats
+- Honouring `RESEND_BASE_URL` so existing Resend users can swap without code changes
 
 ### Authentication Flow
-1. **Admin Login**: JWT tokens via `/api/auth/login`
-2. **API Keys**: Bearer token authentication for email operations
-3. **Middleware**: `withAuth()` and `withApiKeyAuth()` helpers
+1. **Admin login** — JWT tokens via `POST /api/auth/login`
+2. **API keys** — Bearer token authentication for email operations
+3. **Middleware** — `withAuth()` and `withApiKeyAuth()` helpers in `src/lib/middleware.ts`
 
 ### Error Handling Pattern
 Consistent error responses with:
@@ -111,17 +131,23 @@ const result = await transaction(async (client) => {
 ```
 
 ### API Route Structure
-Follow the established pattern in `/src/app/api/`:
+Follow the established pattern in `src/app/api/`:
 - Use proper HTTP methods (GET, POST, DELETE)
 - Apply authentication middleware
 - Return consistent JSON responses
 - Handle errors gracefully
 
 ### Component Organization
-- **Dashboard.tsx**: Main container with tab switching
-- **[Feature]Tab.tsx**: Individual feature components
-- **LoginForm.tsx**: Authentication handling
-- Use React hooks and context for state management
+- `Dashboard.tsx` — main container with tab switching
+- `[Feature]Tab.tsx` — individual feature components
+- `LoginForm.tsx` — authentication handling
+- React hooks + context for state management
+
+### Testing
+- Unit tests live next to the code under `__tests__/` directories
+- AWS SDK calls are mocked with [`aws-sdk-client-mock`](https://github.com/m-radzikowski/aws-sdk-client-mock); axios is mocked via `jest.mock("axios", ...)`
+- Tests must never hit real AWS / DigitalOcean / SMTP endpoints
+- DNS provider abstraction is verified by an integration suite that asserts provider isolation: with `DNS_PROVIDER=digitalocean` only axios is exercised, with `DNS_PROVIDER=route53` only the Route53 client
 
 ## Environment Configuration
 
@@ -135,8 +161,14 @@ AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
 
-# Digital Ocean (optional)
+# DNS provider selection
+DNS_PROVIDER=digitalocean        # or "route53"; defaults to "digitalocean"
+
+# DigitalOcean (required when DNS_PROVIDER=digitalocean)
 DO_API_TOKEN=...
+
+# Route53 (required when DNS_PROVIDER=route53)
+AWS_HOSTED_ZONE_ID=...           # the hosted zone that owns the sending domains
 
 # Security
 NEXTAUTH_SECRET=...
@@ -146,74 +178,54 @@ ADMIN_EMAIL=...
 ADMIN_PASSWORD=...
 ```
 
-## Testing Strategy
-
-**Primary Test Script**: `node test-email.js`
-- Tests direct API calls
-- Validates Resend SDK compatibility  
-- Checks email log functionality
-- Sends actual test emails
-
-**Quick Test**: `./test-curl.sh`
-- Fast cURL-based validation
-- Useful for CI/CD integration
-
-## Database Migration Notes
-
-The project recently migrated from Supabase to direct PostgreSQL:
-- Connection pooling replaces Supabase client
-- Row Level Security removed (handled in application layer)
-- Direct SQL queries replace Supabase query builder
-- Types maintained for compatibility
-
 ## Domain Setup Workflow
 
-1. **Add Domain**: POST `/api/domains` with domain name
-2. **DNS Records**: Auto-created (DO) or manual setup required
-3. **SES Verification**: Automatic domain verification with AWS
-4. **DKIM Setup**: Automatic DKIM key generation and DNS records
-5. **API Key Creation**: Generate keys for verified domains only
-6. **Email Sending**: Use API keys with Resend-compatible endpoints
+1. **Add domain** — `POST /api/domains` with the domain name
+2. **DNS records generated** — `generateDNSRecords()` in `src/lib/ses.ts` produces TXT (SES verification), MX, SPF, DMARC, and DKIM CNAMEs
+3. **DNS provider applies records** — `dns-provider.setupDomainDNS()` dispatches to DigitalOcean or Route53 based on `DNS_PROVIDER`
+4. **SES verification** — `verifyDomain()` (`CreateEmailIdentity` + `GetEmailIdentity`) registers the domain with SES; `getDomainVerificationStatus()` is polled until success
+5. **DKIM tokens** — `enableDomainDkim()` activates DKIM signing; tokens flow back into the DNS records on a retry
+6. **API key creation** — generate keys for verified domains only
+7. **Email sending** — use API keys with the Resend-compatible endpoints (`POST /api/emails`)
 
 ## Common Development Tasks
 
 ### Adding New API Endpoints
-1. Create route file in `/src/app/api/[path]/route.ts`
-2. Add business logic to appropriate `/src/lib/` file
-3. Apply authentication middleware if needed
-4. Update types in `/src/lib/database.ts` if database changes required
+1. Create the route file under `src/app/api/[path]/route.ts`
+2. Add business logic to the appropriate `src/lib/` module
+3. Apply authentication middleware
+4. Update types in `src/lib/database.ts` if a schema change is required
 
 ### Database Schema Changes
-1. Update `/database.sql` with new schema
-2. Update TypeScript interfaces in `/src/lib/database.ts`
-3. Test with `node test-email.js`
+1. Update `database.sql` with the new schema
+2. Update TypeScript interfaces in `src/lib/database.ts`
+3. Apply via `psql ... -f database.sql` (no migration framework)
 
-### Testing Email Functionality
-Always test with real email addresses and verify:
-- Email delivery via AWS SES console
-- Webhook processing for delivery events
-- Email logs in dashboard
-- API key authentication
+### Adding a New DNS Provider
+1. Implement `setupDomainDNS(domain, dnsRecords)` and `verifyDomainOwnership(domain)` in a new module under `src/lib/`
+2. Extend the `DnsProviderName` union and the dispatch switch in `src/lib/dns-provider.ts`
+3. Add unit tests using whatever client mock is appropriate (`aws-sdk-client-mock` for AWS, `jest.mock` for axios-based providers)
+4. Add the new provider to the integration suite to keep the isolation guarantee
 
 ## Security Considerations
 
-- All passwords are bcrypt hashed (rounds: 12)
-- API keys are hashed with identifiable prefixes
+- All passwords are bcrypt-hashed (rounds: 12)
+- API keys are hashed with identifiable `mrs_` prefixes
 - JWT tokens for dashboard authentication
-- Direct database queries use parameterized statements
+- Database queries use parameterised statements
 - Environment variables for all sensitive data
 - CORS handling for cross-origin requests
 
 ## Production Deployment
 
-The application supports multiple deployment methods:
-- **Vercel**: Serverless deployment (recommended)
-- **Docker**: Containerized deployment
-- **Traditional**: Node.js server deployment
+The application is container-friendly via the included `Dockerfile` and runs on any platform that supports a long-lived Node.js process:
+- Container PaaS (Docker, Dokku, Coolify, Fly.io, Railway, ...)
+- Kubernetes (sample manifests live under `k8s/`)
+- Managed Node.js hosting (Vercel, Render, etc. — webhook endpoints may need extra configuration on serverless platforms)
 
 Key production requirements:
-- PostgreSQL database (hosted)
-- AWS SES out of sandbox mode
+- A managed or self-hosted PostgreSQL instance
+- AWS SES out of sandbox mode for the sending region
 - SSL certificates for HTTPS
-- Environment variables configured
-- Database schema initialized
+- Environment variables configured (see above)
+- Database schema initialised via `database.sql`
