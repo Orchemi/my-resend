@@ -264,7 +264,7 @@ export default function PricingCalculator({
             <div className="border-t border-gray-200 pt-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-medium text-gray-700">
-                  FreeResend Pricing Parameters
+                  MyResend Pricing Parameters
                 </h3>
                 <button
                   onClick={() => setShowDetails(!showDetails)}
@@ -443,7 +443,7 @@ export default function PricingCalculator({
           </div>
         </div>
 
-        {/* FreeResend Self-Hosted Cost */}
+        {/* MyResend Self-Hosted Cost */}
         <div className="bg-white rounded-lg shadow-sm border border-blue-200 p-6">
           <div className="flex items-center space-x-2 mb-3">
             <Calculator className="h-5 w-5 text-blue-600" />
@@ -478,7 +478,7 @@ export default function PricingCalculator({
           </div>
         </div>
 
-        {/* FreeResend Hosted Cost */}
+        {/* MyResend Hosted Cost */}
         <div className={`bg-white rounded-lg shadow-sm border p-6 ${waitlistSuccess ? 'border-green-200 bg-green-50' : 'border-purple-200'}`}>
           <div className="mb-3">
             <div className="flex items-center space-x-2 mb-1">

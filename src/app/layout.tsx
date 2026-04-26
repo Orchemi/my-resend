@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 
@@ -15,24 +14,23 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FreeResend - Self-hosted Email Service | 85% Cost Savings",
+  title: "MyResend - Self-hosted Mail Gateway with Resend-compatible API",
   description:
-    "Open-source, self-hosted alternative to Resend. 100% API compatible with 85% cost savings using Amazon SES. Drop-in replacement with auto DNS setup.",
-  keywords: "resend alternative, self-hosted email, amazon ses, transactional email, email api, open source",
-  authors: [{ name: "Emad Ibrahim", url: "https://x.com/eibrahim" }],
-  creator: "Emad Ibrahim",
+    "Open-source, self-hosted mail gateway built on Amazon SES with a Resend-compatible API. Hard-fork of eibrahim/freeresend with planned SES v2 + Route53 support.",
+  keywords: "resend alternative, self-hosted email, amazon ses, ses v2, route53, transactional email, email api, open source, mail gateway",
+  authors: [{ name: "Park Seunghun / Orchemi", url: "https://github.com/Orchemi" }],
+  creator: "Park Seunghun / Orchemi",
   openGraph: {
-    title: "FreeResend - Self-hosted Alternative to Resend",
-    description: "100% API compatible • 85% cost savings • Complete control over your email infrastructure",
-    url: "https://freeresend.com",
-    siteName: "FreeResend",
+    title: "MyResend - Self-hosted Mail Gateway",
+    description: "Resend-compatible API • Amazon SES backend • Self-hosted, open-source",
+    url: "https://github.com/Orchemi/my-resend",
+    siteName: "MyResend",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "FreeResend - Self-hosted Alternative to Resend",
-    description: "100% API compatible • 85% cost savings • Complete control over your email infrastructure",
-    creator: "@eibrahim",
+    title: "MyResend - Self-hosted Mail Gateway",
+    description: "Resend-compatible API • Amazon SES backend • Self-hosted, open-source",
   },
 };
 
@@ -43,13 +41,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <Script
-          defer
-          src="https://analytics.hub.elitecoders.ai/umami"
-          data-website-id="14571765-f9b8-4ced-b501-61413f2bdabf"
-        />
-      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

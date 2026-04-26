@@ -33,7 +33,7 @@ export async function collectStandardMetrics(): Promise<StatsMetric[]> {
     console.warn("[stats-reporter] users_active_30d failed:", (err as Error).message);
   }
 
-  // freeresend has no subscriptions table; skip subs_active entirely.
+  // MyResend has no subscriptions table; skip subs_active entirely.
 
   return out;
 }

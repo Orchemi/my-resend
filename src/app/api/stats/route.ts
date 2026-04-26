@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     return NextResponse.json({
-      app: 'freeresend',
+      app: 'my-resend',
       timestamp: new Date().toISOString(),
       stats: {
         users: {

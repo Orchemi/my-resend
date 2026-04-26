@@ -2,7 +2,7 @@ import { query } from "@/lib/database";
 import type { StatsMetric, StatsMetricDefinition } from "@/types/stats";
 
 /**
- * FreeResend custom metrics.
+ * MyResend custom metrics.
  *
  * A transactional email relay (Resend-compatible API backed by AWS SES):
  *   - email volume: emails_sent_total + emails_sent_30d (core product usage)

@@ -122,7 +122,7 @@ export default function EmailLogsTab() {
         <div className="sm:flex-auto">
           <h1 className="text-xl font-semibold text-gray-900">Email Logs</h1>
           <p className="mt-2 text-sm text-gray-700">
-            View and monitor all emails sent through your FreeResend instance.
+            View and monitor all emails sent through your MyResend instance.
           </p>
         </div>
       </div>

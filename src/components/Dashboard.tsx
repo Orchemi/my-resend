@@ -37,7 +37,7 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
-              <h1 className="text-3xl font-bold text-gray-900">FreeResend</h1>
+              <h1 className="text-3xl font-bold text-gray-900">MyResend</h1>
               <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                 Self-hosted
               </span>
@@ -90,43 +90,33 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center text-sm text-gray-500">
             <div>
-              <span>Built with ❤️ by </span>
+              <span>Built by </span>
               <a
-                href="https://x.com/eibrahim"
+                href="https://github.com/Orchemi"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:text-blue-800 font-medium"
               >
-                Emad Ibrahim
+                Park Seunghun
               </a>
               <span className="mx-2">•</span>
               <a
-                href="https://www.frontendweekly.co/"
+                href="https://github.com/Orchemi/my-resend/blob/main/NOTICE"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-800 font-medium"
+                className="text-gray-500 hover:text-gray-700"
               >
-                Frontend Weekly
-              </a>
-              <span className="mx-2">•</span>
-              <a
-                href="https://www.elitesaas.dev/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-800 font-medium"
-              >
-                EliteSaaS
+                Originally based on freeresend by Emad Ibrahim (MIT)
               </a>
             </div>
             <div className="text-xs">
-              <span>Powered by EliteCoders - </span>
               <a
-                href="https://elitecoders.co/"
+                href="https://github.com/Orchemi/my-resend"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:text-blue-800 underline"
               >
-                Get in touch
+                MyResend on GitHub
               </a>
             </div>
           </div>

@@ -1,5 +1,5 @@
 /**
- * Pricing Calculator Engine for Resend vs FreeResend comparison
+ * Pricing Calculator Engine for Resend vs MyResend comparison
  * 
  * This module provides pure functions for calculating email service costs
  * and comparing pricing between different providers.

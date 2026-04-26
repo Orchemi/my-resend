@@ -21,7 +21,7 @@ export default function LandingPage() {
 
   const copyCodeSnippet = () => {
     navigator.clipboard.writeText(
-      `RESEND_BASE_URL="https://freeresend.com/api"`
+      `RESEND_BASE_URL="https://mail.example.com/api"`
     );
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2000);
@@ -38,12 +38,12 @@ export default function LandingPage() {
                 <EnvelopeIcon className="h-5 w-5 text-white" />
               </div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                FreeResend
+                MyResend
               </h1>
             </div>
             <div className="flex items-center space-x-4">
               <a
-                href="https://github.com/eibrahim/freeresend"
+                href="https://github.com/Orchemi/my-resend"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
@@ -108,7 +108,7 @@ export default function LandingPage() {
               <span>See Pricing</span>
             </Link>
             <a
-              href="https://github.com/eibrahim/freeresend"
+              href="https://github.com/Orchemi/my-resend"
               target="_blank"
               rel="noopener noreferrer"
               className="border-2 border-gray-200 text-gray-700 px-8 py-4 rounded-lg hover:border-gray-300 transition-colors flex items-center justify-center space-x-2 font-semibold"
@@ -181,7 +181,7 @@ export default function LandingPage() {
                 </button>
               </div>
               <code className="text-green-400 font-mono text-sm block">
-                RESEND_BASE_URL=&quot;https://freeresend.com/api&quot;
+                RESEND_BASE_URL=&quot;https://mail.example.com/api&quot;
               </code>
               <p className="text-gray-400 text-sm mt-2">
                 That&apos;s it. Your existing Resend code works unchanged.
@@ -196,7 +196,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Why Choose FreeResend?
+              Why Choose MyResend?
             </h3>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Get all the benefits of premium email services without the premium
@@ -359,7 +359,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              FreeResend vs. Premium Services
+              MyResend vs. Premium Services
             </h3>
             <p className="text-lg text-gray-600">
               Get the same features at a fraction of the cost
@@ -375,7 +375,7 @@ export default function LandingPage() {
                       Feature
                     </th>
                     <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900">
-                      FreeResend
+                      MyResend
                     </th>
                     <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900">
                       Premium Services
@@ -441,7 +441,7 @@ export default function LandingPage() {
             Ready to Take Control of Your Email Infrastructure?
           </h3>
           <p className="text-xl text-blue-100 mb-8">
-            Join developers already saving money with FreeResend
+            Join developers already saving money with MyResend
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -453,7 +453,7 @@ export default function LandingPage() {
               <ArrowRight className="h-5 w-5" />
             </Link>
             <a
-              href="https://github.com/eibrahim/freeresend"
+              href="https://github.com/Orchemi/my-resend"
               target="_blank"
               rel="noopener noreferrer"
               className="border-2 border-white text-white px-8 py-4 rounded-lg hover:bg-white hover:text-blue-600 transition-colors flex items-center justify-center space-x-2 font-semibold"
@@ -474,7 +474,7 @@ export default function LandingPage() {
                 <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                   <EnvelopeIcon className="h-5 w-5 text-white" />
                 </div>
-                <h4 className="text-xl font-bold">FreeResend</h4>
+                <h4 className="text-xl font-bold">MyResend</h4>
               </div>
               <p className="text-gray-400">
                 Open-source, self-hosted email service compatible with Resend.
@@ -486,7 +486,7 @@ export default function LandingPage() {
               <ul className="space-y-2">
                 <li>
                   <a
-                    href="https://github.com/eibrahim/freeresend"
+                    href="https://github.com/Orchemi/my-resend"
                     className="text-gray-400 hover:text-white transition-colors"
                   >
                     Documentation
@@ -494,7 +494,7 @@ export default function LandingPage() {
                 </li>
                 <li>
                   <a
-                    href="https://github.com/eibrahim/freeresend"
+                    href="https://github.com/Orchemi/my-resend"
                     className="text-gray-400 hover:text-white transition-colors"
                   >
                     GitHub
@@ -502,7 +502,7 @@ export default function LandingPage() {
                 </li>
                 <li>
                   <a
-                    href="https://github.com/eibrahim/freeresend/issues"
+                    href="https://github.com/Orchemi/my-resend/issues"
                     className="text-gray-400 hover:text-white transition-colors"
                   >
                     Issues
@@ -516,7 +516,7 @@ export default function LandingPage() {
               <ul className="space-y-2">
                 <li>
                   <a
-                    href="https://github.com/eibrahim/freeresend/discussions"
+                    href="https://github.com/Orchemi/my-resend/discussions"
                     className="text-gray-400 hover:text-white transition-colors"
                   >
                     Discussions
@@ -524,7 +524,7 @@ export default function LandingPage() {
                 </li>
                 <li>
                   <a
-                    href="https://github.com/eibrahim/freeresend/blob/main/CONTRIBUTING.md"
+                    href="https://github.com/Orchemi/my-resend/blob/main/CONTRIBUTING.md"
                     className="text-gray-400 hover:text-white transition-colors"
                   >
                     Contributing
@@ -546,7 +546,7 @@ export default function LandingPage() {
               <ul className="space-y-2">
                 <li>
                   <a
-                    href="https://github.com/eibrahim/freeresend/blob/main/LICENSE"
+                    href="https://github.com/Orchemi/my-resend/blob/main/LICENSE"
                     className="text-gray-400 hover:text-white transition-colors"
                   >
                     MIT License

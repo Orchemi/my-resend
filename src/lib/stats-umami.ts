@@ -4,7 +4,7 @@ import type { StatsMetric, StatsMetricDefinition } from "@/types/stats";
  * Collects pageview/visitor metrics from Umami. Fails quietly: returns []
  * when any required config is missing or any HTTP call errors.
  *
- * Config sources (freeresend has no siteConfig; everything comes from env):
+ * Config sources (MyResend has no siteConfig; everything comes from env):
  *   UMAMI_WEBSITE_ID                 - per-app website UUID (see layout.tsx data-website-id)
  *   UMAMI_API_URL                    - API base, e.g. https://analytics.hub.elitecoders.ai
  *   UMAMI_USERNAME / UMAMI_PASSWORD  - read-only stats-user creds (shared across apps)
