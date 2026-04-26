@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyJWT } from "@/lib/auth";
 import { getDomainById } from "@/lib/domains";
-import {
-  setupDomainDNS,
-  verifyDomainOwnership,
-  type DODomainRecord,
-} from "@/lib/digitalocean";
+import { setupDomainDNS, verifyDomainOwnership } from "@/lib/dns-provider";
 import { generateDNSRecords, getDomainDkimTokens } from "@/lib/ses";
 
 function cors(response: NextResponse) {
@@ -19,21 +15,6 @@ function cors(response: NextResponse) {
     "Content-Type, Authorization"
   );
   return response;
-}
-
-// Helper function to convert DODomainRecord to DNSRecord
-function convertDORecordToDNSRecord(doRecord: DODomainRecord): {
-  type: string;
-  name: string;
-  value: string;
-  ttl: number;
-} {
-  return {
-    type: doRecord.type,
-    name: doRecord.name,
-    value: doRecord.data,
-    ttl: doRecord.ttl,
-  };
 }
 
 export async function POST(
@@ -96,28 +77,31 @@ export async function POST(
         dkimTokens
       );
 
-      // Check if domain exists in Digital Ocean
-      console.log(`Checking if ${domainName} exists in DigitalOcean...`);
-      const isDomainInDO = await verifyDomainOwnership(domainName);
-      if (!isDomainInDO) {
+      // Check if domain is managed by the configured DNS provider
+      console.log(
+        `Checking if ${domainName} is managed by configured DNS provider...`
+      );
+      const isDomainOwned = await verifyDomainOwnership(domainName);
+      if (!isDomainOwned) {
         return cors(
           NextResponse.json(
             {
               success: false,
-              error: `Domain ${domainName} not found in your DigitalOcean account. Please add it first.`,
+              error: `Domain ${domainName} is not managed by the configured DNS provider. Please add it first.`,
             },
             { status: 400 }
           )
         );
       }
 
-      // Setup DNS in Digital Ocean
-      console.log(`Setting up DigitalOcean DNS for ${domainName}...`);
-      const doRecords = await setupDomainDNS(domainName, dnsRecords);
-      const digitalOceanRecords = doRecords.map(convertDORecordToDNSRecord);
+      // Setup DNS via the configured DNS provider
+      console.log(
+        `Setting up DNS via configured DNS provider for ${domainName}...`
+      );
+      const createdRecords = await setupDomainDNS(domainName, dnsRecords);
 
       console.log(
-        `Successfully created ${doRecords.length} DNS records for ${domainName}`
+        `Successfully created ${createdRecords.length} DNS records for ${domainName}`
       );
 
       return cors(
@@ -125,11 +109,11 @@ export async function POST(
           success: true,
           data: {
             domain: domainName,
-            createdRecords: digitalOceanRecords,
+            createdRecords,
             setupInstructions:
-              "DNS records have been successfully created/updated in DigitalOcean.",
+              "DNS records have been successfully created/updated via the configured DNS provider.",
           },
-          message: `DNS setup completed successfully for ${domainName}. Created ${doRecords.length} records.`,
+          message: `DNS setup completed successfully for ${domainName}. Created ${createdRecords.length} records.`,
         })
       );
     } catch (error: unknown) {
@@ -141,9 +125,9 @@ export async function POST(
         NextResponse.json(
           {
             success: false,
-            error: `Failed to setup DigitalOcean DNS: ${errorMessage}`,
+            error: `Failed to setup DNS via configured DNS provider: ${errorMessage}`,
             suggestion:
-              "Please check your DigitalOcean API token permissions and try again.",
+              "Please check your DNS provider credentials and permissions, then try again.",
           },
           { status: 500 }
         )
