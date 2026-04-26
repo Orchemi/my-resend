@@ -1,22 +1,33 @@
-import axios from "axios";
+import axios, { type AxiosInstance } from "axios";
 
 const DO_API_BASE = "https://api.digitalocean.com/v2";
-const DO_API_TOKEN = process.env.DO_API_TOKEN;
 
-if (!DO_API_TOKEN) {
-  console.warn(
-    "DO_API_TOKEN not set. Digital Ocean DNS management will be disabled."
-  );
+/**
+ * Read the DigitalOcean API token at call time rather than module-load
+ * time. Module-load capture made tests fragile (env had to be seeded
+ * before any import that transitively pulled this module) and prevented
+ * the token from being rotated in long-running processes.
+ */
+function getApiToken(): string | undefined {
+  return process.env.DO_API_TOKEN;
 }
 
-const doClient = axios.create({
-  baseURL: DO_API_BASE,
-  headers: {
-    Authorization: `Bearer ${DO_API_TOKEN}`,
-    "Content-Type": "application/json",
-  },
-  timeout: 10000, // 10 second timeout
-});
+/**
+ * Build a fresh axios client per call so the `Authorization` header
+ * always reflects the current `DO_API_TOKEN`. `axios.create` is cheap
+ * (a config + interceptor wrapper, no network), so the per-call cost
+ * is negligible relative to the HTTP request itself.
+ */
+function getDoClient(): AxiosInstance {
+  return axios.create({
+    baseURL: DO_API_BASE,
+    headers: {
+      Authorization: `Bearer ${getApiToken()}`,
+      "Content-Type": "application/json",
+    },
+    timeout: 10000, // 10 second timeout
+  });
+}
 
 // Helper function to add retry logic with exponential backoff
 async function retryRequest<T>(
@@ -85,13 +96,13 @@ export interface DODomain {
 }
 
 export async function getDomains(): Promise<DODomain[]> {
-  if (!DO_API_TOKEN) {
+  if (!getApiToken()) {
     throw new Error("Digital Ocean API token not configured");
   }
 
   try {
     const response = await retryRequest(async () => {
-      return await doClient.get("/domains");
+      return await getDoClient().get("/domains");
     });
     return response.data.domains;
   } catch (error: unknown) {
@@ -110,13 +121,13 @@ export async function getDomains(): Promise<DODomain[]> {
 export async function getDomainRecords(
   domain: string
 ): Promise<DODomainRecord[]> {
-  if (!DO_API_TOKEN) {
+  if (!getApiToken()) {
     throw new Error("Digital Ocean API token not configured");
   }
 
   try {
     const response = await retryRequest(async () => {
-      return await doClient.get(`/domains/${domain}/records`);
+      return await getDoClient().get(`/domains/${domain}/records`);
     });
     return response.data.domain_records;
   } catch (error: unknown) {
@@ -136,7 +147,7 @@ export async function createDNSRecord(
   domain: string,
   record: DNSRecord
 ): Promise<DODomainRecord> {
-  if (!DO_API_TOKEN) {
+  if (!getApiToken()) {
     throw new Error("Digital Ocean API token not configured");
   }
 
@@ -172,7 +183,7 @@ export async function createDNSRecord(
     }
 
     const response = await retryRequest(async () => {
-      return await doClient.post(`/domains/${domain}/records`, payload);
+      return await getDoClient().post(`/domains/${domain}/records`, payload);
     });
     return response.data.domain_record;
   } catch (error: unknown) {
@@ -193,7 +204,7 @@ export async function updateDNSRecord(
   recordId: number,
   record: Partial<DNSRecord>
 ): Promise<DODomainRecord> {
-  if (!DO_API_TOKEN) {
+  if (!getApiToken()) {
     throw new Error("Digital Ocean API token not configured");
   }
 
@@ -208,7 +219,7 @@ export async function updateDNSRecord(
     if (record.ttl) payload.ttl = record.ttl;
     if (record.type) payload.type = record.type;
 
-    const response = await doClient.put(
+    const response = await getDoClient().put(
       `/domains/${domain}/records/${recordId}`,
       payload
     );
@@ -230,12 +241,12 @@ export async function deleteDNSRecord(
   domain: string,
   recordId: number
 ): Promise<void> {
-  if (!DO_API_TOKEN) {
+  if (!getApiToken()) {
     throw new Error("Digital Ocean API token not configured");
   }
 
   try {
-    await doClient.delete(`/domains/${domain}/records/${recordId}`);
+    await getDoClient().delete(`/domains/${domain}/records/${recordId}`);
   } catch (error: unknown) {
     const axiosError = error as {
       response?: { data?: { message?: string } };
@@ -253,7 +264,7 @@ export async function setupDomainDNS(
   domain: string,
   dnsRecords: DNSRecord[]
 ): Promise<DODomainRecord[]> {
-  if (!DO_API_TOKEN) {
+  if (!getApiToken()) {
     console.warn(
       "Digital Ocean API not configured. DNS records need to be created manually."
     );
@@ -352,7 +363,7 @@ export async function setupDomainDNS(
 }
 
 export async function verifyDomainOwnership(domain: string): Promise<boolean> {
-  if (!DO_API_TOKEN) {
+  if (!getApiToken()) {
     return false;
   }
 
