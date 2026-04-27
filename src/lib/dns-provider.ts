@@ -38,6 +38,39 @@ export interface DnsProviderRecord {
   description?: string;
 }
 
+/**
+ * Read-only health probe result from the active DNS provider.
+ *
+ * Each provider's `checkProvider()` returns this discriminated union so
+ * `/api/health/dns` can surface a single unified shape to the dashboard.
+ *
+ * Secret policy: the `error` branch never reflects raw error fields back
+ * to the client. Only `name`, `message`, and `httpStatusCode` are
+ * preserved — provider implementations build this whitelist in their
+ * own `checkProvider()` so SigV4 / Bearer headers attached to underlying
+ * SDK errors cannot leak.
+ */
+export type DnsHealth =
+  | {
+      ok: true;
+      provider: "digitalocean";
+      detail: { domainCount: number };
+    }
+  | {
+      ok: true;
+      provider: "route53";
+      detail: { hostedZoneCount: number; pinnedZoneId: string | null };
+    }
+  | {
+      ok: false;
+      provider: DnsProviderName;
+      error: {
+        name: string;
+        message: string;
+        httpStatusCode: number | null;
+      };
+    };
+
 const DEFAULT_PROVIDER: DnsProviderName = "digitalocean";
 const SUPPORTED_PROVIDERS: readonly DnsProviderName[] = [
   "digitalocean",
@@ -105,6 +138,29 @@ export async function verifyDomainOwnership(domain: string): Promise<boolean> {
       return digitalocean.verifyDomainOwnership(domain);
     case "route53":
       return route53.verifyDomainOwnership(domain);
+  }
+}
+
+/**
+ * Read-only health probe for the currently-active DNS provider. Used by
+ * `/api/health/dns` (admin Connections tab) to surface a single unified
+ * shape regardless of which provider the operator selected.
+ *
+ * Only the active provider is probed — checking a non-active provider
+ * would report token-absence as a false negative for credentials the
+ * operator never intended to configure.
+ *
+ * Throws (rather than returning `ok: false`) only when `DNS_PROVIDER`
+ * itself holds an unknown value — the route handler converts that to a
+ * generic 500 so misconfiguration is visible during operator setup.
+ */
+export async function checkDnsProvider(): Promise<DnsHealth> {
+  const provider = getDnsProviderName();
+  switch (provider) {
+    case "digitalocean":
+      return digitalocean.checkProvider();
+    case "route53":
+      return route53.checkProvider();
   }
 }
 

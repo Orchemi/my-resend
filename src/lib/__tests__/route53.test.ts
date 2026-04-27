@@ -10,11 +10,13 @@ import {
   Route53Client,
   GetHostedZoneCommand,
   ListHostedZonesByNameCommand,
+  ListHostedZonesCommand,
   ListResourceRecordSetsCommand,
   ChangeResourceRecordSetsCommand,
 } from "@aws-sdk/client-route-53";
 
 import {
+  checkProvider,
   resolveHostedZoneId,
   setupDomainDNS,
   verifyDomainOwnership,
@@ -484,5 +486,85 @@ describe("resolveHostedZoneId", () => {
     expect(
       route53Mock.commandCalls(ListHostedZonesByNameCommand)
     ).toHaveLength(1);
+  });
+});
+
+describe("checkProvider (Route53)", () => {
+  beforeEach(() => {
+    __resetZoneIdCacheForTests();
+    delete process.env.AWS_HOSTED_ZONE_ID;
+  });
+
+  it("returns ok=true with detail.hostedZoneCount=1 + pinnedZoneId when AWS_HOSTED_ZONE_ID is set and GetHostedZone resolves", async () => {
+    process.env.AWS_HOSTED_ZONE_ID = "Z123EXAMPLE";
+    route53Mock.on(GetHostedZoneCommand).resolves({
+      HostedZone: {
+        Id: "/hostedzone/Z123EXAMPLE",
+        Name: "example.com.",
+        CallerReference: "ref",
+      },
+    });
+
+    const result = await checkProvider();
+
+    expect(result).toEqual({
+      ok: true,
+      provider: "route53",
+      detail: { hostedZoneCount: 1, pinnedZoneId: "Z123EXAMPLE" },
+    });
+    const calls = route53Mock.commandCalls(GetHostedZoneCommand);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].args[0].input).toEqual({ Id: "Z123EXAMPLE" });
+    // No account-level list when zone is pinned.
+    expect(route53Mock.commandCalls(ListHostedZonesCommand)).toHaveLength(0);
+  });
+
+  it("returns ok=true with detail.hostedZoneCount=N + pinnedZoneId=null when zone id is unset (lists account zones)", async () => {
+    route53Mock.on(ListHostedZonesCommand).resolves({
+      HostedZones: [
+        { Id: "/hostedzone/Z1", Name: "example.com.", CallerReference: "r1" },
+        { Id: "/hostedzone/Z2", Name: "example.org.", CallerReference: "r2" },
+        { Id: "/hostedzone/Z3", Name: "example.net.", CallerReference: "r3" },
+      ],
+    });
+
+    const result = await checkProvider();
+
+    expect(result).toEqual({
+      ok: true,
+      provider: "route53",
+      detail: { hostedZoneCount: 3, pinnedZoneId: null },
+    });
+    expect(route53Mock.commandCalls(ListHostedZonesCommand)).toHaveLength(1);
+    // No GetHostedZone call when zone is not pinned.
+    expect(route53Mock.commandCalls(GetHostedZoneCommand)).toHaveLength(0);
+  });
+
+  it("returns ok=false with httpStatusCode=403 on AccessDenied (and never serializes the raw error)", async () => {
+    process.env.AWS_HOSTED_ZONE_ID = "Z123EXAMPLE";
+    const err = Object.assign(new Error("access denied for route53:GetHostedZone"), {
+      name: "AccessDeniedException",
+      $metadata: { httpStatusCode: 403 },
+    });
+    route53Mock.on(GetHostedZoneCommand).rejects(err);
+
+    const result = await checkProvider();
+
+    expect(result).toEqual({
+      ok: false,
+      provider: "route53",
+      error: {
+        name: "AccessDeniedException",
+        message: "access denied for route53:GetHostedZone",
+        httpStatusCode: 403,
+      },
+    });
+
+    // Sanity: serialized form must not contain AWS access keys / Bearer
+    // tokens / secret accessors.
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toMatch(/AKIA[0-9A-Z]{16}/);
+    expect(serialized).not.toMatch(/Bearer\s+/);
+    expect(serialized).not.toContain("secretAccessKey");
   });
 });

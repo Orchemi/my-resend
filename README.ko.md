@@ -17,6 +17,7 @@ my-resend 는 [eibrahim/freeresend](https://github.com/eibrahim/freeresend) (MIT
 - 📊 **발송 로그** — 모든 발송 건의 전달 상태와 webhook 이벤트 추적
 - 🎯 **도메인 verify** — SES 도메인 인증 자동화 + 멱등 재시도
 - 🔒 **보안** — JWT 기반 대시보드 인증, bcrypt 비밀번호 해싱, 매개변수화 SQL
+- 🩺 **연결 헬스 체크** — 어드민 전용 `Connections` 탭으로 Amazon SES (sandbox 여부, 송신 quota) 와 활성 DNS provider 를 한 번에 진단; read-only, 시크릿 미노출
 - 🐳 **컨테이너 친화적** — Dockerfile 포함; Docker / Dokku / Coolify / Fly.io / Kubernetes 등 Node.js 장기 실행 프로세스를 지원하는 모든 호스트에서 동작
 - 🧪 **테스트** — Jest 단위 + 통합 테스트로 SES, DNS provider, Route53 surface 검증 (`aws-sdk-client-mock` 사용, CI 에서 라이브 AWS 호출 없음)
 
