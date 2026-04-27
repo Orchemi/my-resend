@@ -97,6 +97,13 @@ The schema lives in `database.sql`; there is no migration framework — apply on
 - bcrypt hashing with the `mrs_` prefix preserved for identification
 - Domain-scoped permissions
 
+**Admin Connections Health** (`src/app/api/health/{ses,dns}/route.ts` + `src/components/ConnectionsTab.tsx`):
+- Two read-only admin endpoints (`GET /api/health/ses`, `GET /api/health/dns`) protected by inline JWT verification (matching the `auth/me` and `domains` routes)
+- SES probe: single `GetAccountCommand`, returns `{ ok, region, sandbox, sendingEnabled, enforcementStatus, sendQuota }`. `ok: true|false` both serialize as HTTP 200 so the dashboard handles a single result path
+- DNS probe: dispatches via `checkDnsProvider()` to the active provider's `checkProvider()` — DigitalOcean lists `/v2/domains`, Route53 either reads the pinned zone (`AWS_HOSTED_ZONE_ID`) via `GetHostedZoneCommand` or lists account zones via `ListHostedZonesCommand`
+- Secret policy: errors are reduced to a `{ name, message, httpStatusCode }` whitelist before serialization; AWS access keys, DO API tokens, JWTs are never reflected. Tested via regex-based sanity assertions in every route + component test
+- Dashboard surface: a Connections tab fires both fetches in parallel on mount and re-runs them on Refresh (no automatic polling — operator-initiated only)
+
 ## API Design Patterns
 
 ### Resend Compatibility

@@ -17,6 +17,7 @@ my-resend is a hard fork of [eibrahim/freeresend](https://github.com/eibrahim/fr
 - 📊 **Email logging** — every send tracked with delivery status and webhook events
 - 🎯 **Domain verification** — automated SES domain verification with idempotent retries
 - 🔒 **Secure** — JWT-based dashboard auth, bcrypt password hashing, parameterised SQL
+- 🩺 **Connections health** — admin-only `Connections` tab probes Amazon SES (sandbox flag, send quota) and the active DNS provider in one click; read-only, secret-free responses
 - 🐳 **Container-friendly** — Dockerfile included; runs on Docker, Dokku, Coolify, Fly.io, Kubernetes, or any host that runs a long-lived Node.js process
 - 🧪 **Tested** — Jest unit + integration suite covering the SES, DNS provider, and Route53 surfaces using `aws-sdk-client-mock` (no live AWS calls in CI)
 

@@ -5,8 +5,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import DomainsTab from "./DomainsTab";
 import ApiKeysTab from "./ApiKeysTab";
 import EmailLogsTab from "./EmailLogsTab";
+import ConnectionsTab from "./ConnectionsTab";
 
-type Tab = "domains" | "apikeys" | "logs";
+type Tab = "domains" | "apikeys" | "logs" | "connections";
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -27,6 +28,11 @@ export default function Dashboard() {
       id: "logs" as Tab,
       name: "Email Logs",
       description: "View sent email history",
+    },
+    {
+      id: "connections" as Tab,
+      name: "Connections",
+      description: "SES & DNS provider health",
     },
   ];
 
@@ -82,6 +88,7 @@ export default function Dashboard() {
           {activeTab === "domains" && <DomainsTab />}
           {activeTab === "apikeys" && <ApiKeysTab />}
           {activeTab === "logs" && <EmailLogsTab />}
+          {activeTab === "connections" && <ConnectionsTab />}
         </div>
       </main>
 
