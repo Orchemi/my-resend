@@ -1,5 +1,5 @@
 import axios, { type AxiosInstance } from "axios";
-import type { DnsProviderRecord } from "./dns-provider";
+import type { DnsHealth, DnsProviderRecord } from "./dns-provider";
 
 const DO_API_BASE = "https://api.digitalocean.com/v2";
 
@@ -366,6 +366,58 @@ export async function verifyDomainOwnership(domain: string): Promise<boolean> {
   } catch (error: unknown) {
     console.error("Failed to verify domain ownership:", error);
     return false;
+  }
+}
+
+/**
+ * Read-only health probe used by `/api/health/dns` (admin Connections tab).
+ *
+ * Issues a single GET /v2/domains call so we verify both that
+ *   (a) `DO_API_TOKEN` is set, and
+ *   (b) the token is accepted by the API and can list account-level
+ *       resources.
+ *
+ * Errors are reduced to a `{ name, message, httpStatusCode }` whitelist
+ * — the raw axios error is never serialized because it transitively
+ * carries `response.config.headers.Authorization` (the `Bearer <token>`
+ * value), which would leak the token to the response payload.
+ */
+export async function checkProvider(): Promise<DnsHealth> {
+  if (!getApiToken()) {
+    return {
+      ok: false,
+      provider: "digitalocean",
+      error: {
+        name: "MissingToken",
+        message: "DO_API_TOKEN is not set",
+        httpStatusCode: null,
+      },
+    };
+  }
+
+  try {
+    const response = await getDoClient().get("/domains");
+    const domains = (response.data?.domains ?? []) as DODomain[];
+    return {
+      ok: true,
+      provider: "digitalocean",
+      detail: { domainCount: domains.length },
+    };
+  } catch (error: unknown) {
+    const axiosError = error as {
+      name?: string;
+      message?: string;
+      response?: { status?: number };
+    };
+    return {
+      ok: false,
+      provider: "digitalocean",
+      error: {
+        name: axiosError.name ?? "AxiosError",
+        message: axiosError.message ?? "Unknown error",
+        httpStatusCode: axiosError.response?.status ?? null,
+      },
+    };
   }
 }
 

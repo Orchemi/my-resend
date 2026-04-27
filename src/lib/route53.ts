@@ -23,6 +23,7 @@ import {
   Route53Client,
   GetHostedZoneCommand,
   ListHostedZonesByNameCommand,
+  ListHostedZonesCommand,
   ListResourceRecordSetsCommand,
   ChangeResourceRecordSetsCommand,
   type Change,
@@ -30,7 +31,7 @@ import {
   type RRType,
 } from "@aws-sdk/client-route-53";
 
-import type { DnsProviderRecord } from "./dns-provider";
+import type { DnsHealth, DnsProviderRecord } from "./dns-provider";
 
 /**
  * Build a fresh Route53 client per call. Mirrors the lazy pattern used in
@@ -329,4 +330,71 @@ function normalizeValue(value: string, type: RRType | undefined): string {
     return stripTrailingDot(value);
   }
   return value;
+}
+
+/**
+ * Read-only health probe used by `/api/health/dns` (admin Connections tab).
+ *
+ * Two paths depending on whether a hosted zone is pinned via env:
+ *   - `AWS_HOSTED_ZONE_ID` set -> issue a single `GetHostedZoneCommand`
+ *     for that exact zone. Verifies both that the zone exists and that
+ *     the configured AWS credentials have permission to read it.
+ *     Reported `hostedZoneCount` is `1` (the pinned zone) and
+ *     `pinnedZoneId` echoes the env value back so the dashboard can
+ *     render the operator's pin choice.
+ *   - `AWS_HOSTED_ZONE_ID` unset -> issue `ListHostedZonesCommand({})`
+ *     for an account-level visibility check. Reported `hostedZoneCount`
+ *     is the total returned in the first page (sufficient as a "can I
+ *     see anything?" probe; pagination is not exhausted because the
+ *     point is provider liveness, not exhaustive enumeration).
+ *     `pinnedZoneId` is `null` so the UI can show "auto-discover" mode.
+ *
+ * Errors are reduced to a `{ name, message, httpStatusCode }` whitelist
+ * — the raw AWS SDK error is never serialized because it transitively
+ * carries SigV4-signed request headers (the `Authorization` header
+ * includes `Credential=AKIA…/…`), which would leak the access key id
+ * to the response payload.
+ */
+export async function checkProvider(): Promise<DnsHealth> {
+  const pinnedZoneId = process.env.AWS_HOSTED_ZONE_ID;
+
+  try {
+    if (pinnedZoneId) {
+      await getRoute53Client().send(
+        new GetHostedZoneCommand({ Id: pinnedZoneId })
+      );
+      return {
+        ok: true,
+        provider: "route53",
+        detail: { hostedZoneCount: 1, pinnedZoneId },
+      };
+    }
+
+    const response = await getRoute53Client().send(
+      new ListHostedZonesCommand({})
+    );
+    return {
+      ok: true,
+      provider: "route53",
+      detail: {
+        hostedZoneCount: response.HostedZones?.length ?? 0,
+        pinnedZoneId: null,
+      },
+    };
+  } catch (error: unknown) {
+    const errObj = error as {
+      name?: string;
+      message?: string;
+      $metadata?: { httpStatusCode?: number };
+    };
+    return {
+      ok: false,
+      provider: "route53",
+      error: {
+        name: errObj.name ?? "Error",
+        message: errObj.message ?? "Unknown error",
+        httpStatusCode: errObj.$metadata?.httpStatusCode ?? null,
+      },
+    };
+  }
 }

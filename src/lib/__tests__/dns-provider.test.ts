@@ -12,14 +12,17 @@ jest.mock("../digitalocean", () => ({
   __esModule: true,
   setupDomainDNS: jest.fn(),
   verifyDomainOwnership: jest.fn(),
+  checkProvider: jest.fn(),
 }));
 jest.mock("../route53", () => ({
   __esModule: true,
   setupDomainDNS: jest.fn(),
   verifyDomainOwnership: jest.fn(),
+  checkProvider: jest.fn(),
 }));
 
 import {
+  checkDnsProvider,
   getDnsProviderName,
   setupDomainDNS,
   verifyDomainOwnership,
@@ -33,11 +36,17 @@ const doSetupMock = digitalocean.setupDomainDNS as jest.MockedFunction<
 const doVerifyMock = digitalocean.verifyDomainOwnership as jest.MockedFunction<
   typeof digitalocean.verifyDomainOwnership
 >;
+const doCheckMock = digitalocean.checkProvider as jest.MockedFunction<
+  typeof digitalocean.checkProvider
+>;
 const r53SetupMock = route53.setupDomainDNS as jest.MockedFunction<
   typeof route53.setupDomainDNS
 >;
 const r53VerifyMock = route53.verifyDomainOwnership as jest.MockedFunction<
   typeof route53.verifyDomainOwnership
+>;
+const r53CheckMock = route53.checkProvider as jest.MockedFunction<
+  typeof route53.checkProvider
 >;
 
 describe("getDnsProviderName", () => {
@@ -211,5 +220,61 @@ describe("verifyDomainOwnership dispatch", () => {
     expect(result).toBe(true);
     expect(r53VerifyMock).toHaveBeenCalledWith("example.com");
     expect(doVerifyMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("checkDnsProvider dispatch", () => {
+  const ORIGINAL_ENV = process.env.DNS_PROVIDER;
+
+  beforeEach(() => {
+    doCheckMock.mockReset();
+    r53CheckMock.mockReset();
+  });
+
+  afterEach(() => {
+    if (ORIGINAL_ENV === undefined) {
+      delete process.env.DNS_PROVIDER;
+    } else {
+      process.env.DNS_PROVIDER = ORIGINAL_ENV;
+    }
+  });
+
+  it("delegates to digitalocean and returns its DnsHealth result unchanged", async () => {
+    process.env.DNS_PROVIDER = "digitalocean";
+    const doResult = {
+      ok: true as const,
+      provider: "digitalocean" as const,
+      detail: { domainCount: 3 },
+    };
+    doCheckMock.mockResolvedValue(doResult);
+
+    const result = await checkDnsProvider();
+
+    expect(result).toBe(doResult);
+    expect(doCheckMock).toHaveBeenCalledTimes(1);
+    expect(r53CheckMock).not.toHaveBeenCalled();
+  });
+
+  it("delegates to route53 and returns its DnsHealth result unchanged", async () => {
+    process.env.DNS_PROVIDER = "route53";
+    const r53Result = {
+      ok: true as const,
+      provider: "route53" as const,
+      detail: { hostedZoneCount: 2, pinnedZoneId: "Z123EXAMPLE" },
+    };
+    r53CheckMock.mockResolvedValue(r53Result);
+
+    const result = await checkDnsProvider();
+
+    expect(result).toBe(r53Result);
+    expect(r53CheckMock).toHaveBeenCalledTimes(1);
+    expect(doCheckMock).not.toHaveBeenCalled();
+  });
+
+  it("propagates throw from getDnsProviderName on unknown DNS_PROVIDER", async () => {
+    process.env.DNS_PROVIDER = "cloudflare";
+    await expect(checkDnsProvider()).rejects.toThrow(/DNS_PROVIDER/);
+    expect(doCheckMock).not.toHaveBeenCalled();
+    expect(r53CheckMock).not.toHaveBeenCalled();
   });
 });
