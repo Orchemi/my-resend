@@ -1,196 +1,174 @@
-# FreeResend Deployment Guide
+# MyResend Deployment Guide
 
-## Quick Deploy to Vercel
+MyResend is a standard Next.js 15 application. Any host that can run Node 20+ and reach a PostgreSQL database works. This guide lists the supported deployment options side by side, plus the steps that are common to all of them.
 
-### Prerequisites
-- Vercel account
-- GitHub repository (recommended)
-- PostgreSQL database (managed service recommended)
-- AWS SES account configured
-- Domain name (optional)
+For local first-run setup, see [SETUP.md](./SETUP.md).
 
-### 1. Database Setup
+## 1. Prerequisites (all options)
 
-**Recommended Services:**
-- **Railway**: [railway.app](https://railway.app) - $5/month
-- **Supabase**: [supabase.com](https://supabase.com) - Free tier available
-- **PlanetScale**: [planetscale.com](https://planetscale.com) - Free tier available
-- **Neon**: [neon.tech](https://neon.tech) - Free tier available
+- A PostgreSQL 14+ database reachable by the deployment (managed Postgres or self-hosted).
+- AWS SES production access (or sandbox if you only test with verified recipients).
+- An IAM user with the SES v2 policy (and Route53 policy if `DNS_PROVIDER=route53`) from [SETUP.md](./SETUP.md).
+- A DigitalOcean API token if `DNS_PROVIDER=digitalocean`.
+- A custom domain (optional but typical — required to send from a non-sandbox address).
 
-**Database Schema:**
-```sql
--- Run the contents of database.sql in your PostgreSQL database
--- This creates all necessary tables and indexes
-```
+## 2. Database
 
-### 2. Environment Variables
-
-Set these in Vercel Dashboard or using Vercel CLI:
+MyResend bootstraps from a single SQL file (no migration framework). Any PostgreSQL-compatible service works — provision a database, capture the connection string for `DATABASE_URL`, then:
 
 ```bash
-# Required Variables
-NEXTAUTH_URL=https://your-domain.vercel.app
-NEXTAUTH_SECRET=your-64-character-secret-key
-DATABASE_URL=postgresql://user:pass@host:port/db
+psql "$DATABASE_URL" -f database.sql
+```
+
+The script is idempotent (`CREATE TABLE IF NOT EXISTS`) so it is safe to re-run on existing databases.
+
+## 3. Environment Variables
+
+Set the keys documented in `CLAUDE.md § Environment Configuration` (the same set lives in `.env.local.example`). The deployment-shape-sensitive ones are:
+
+```bash
+# Required
+DATABASE_URL=postgresql://user:pass@host:5432/my_resend
+NEXTAUTH_URL=https://your-domain.example.com    # public origin
+NEXTAUTH_SECRET=                                # 64+ char random
 AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=AKIA...
-AWS_SECRET_ACCESS_KEY=...
-ADMIN_EMAIL=admin@yourdomain.com
-ADMIN_PASSWORD=secure-password
+AWS_SECRET_ACCESS_KEY=
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=
 
-# Optional Variables
+# DNS provider (default: digitalocean)
+DNS_PROVIDER=digitalocean
 DO_API_TOKEN=dop_v1_...
-WEBHOOK_URL=https://your-domain.vercel.app/api/webhooks/ses
+
+# Optional
+# AWS_HOSTED_ZONE_ID=...                        # route53 mode, optional
+# CRON_SECRET=                                  # cron endpoint header
 ```
 
-### 3. Deploy to Vercel
+Never commit `.env.local` or any file with real secrets. `.env.local.example` is the only env file tracked by git and contains placeholders only.
 
-#### Option A: GitHub Integration (Recommended)
-1. Push your code to GitHub
-2. Connect repository to Vercel
-3. Configure environment variables
-4. Deploy automatically on push
+## 4. Deployment Options
 
-#### Option B: Vercel CLI
+MyResend has no platform lock-in. The options below are listed in no particular order — pick the one that matches your existing infrastructure.
+
+### Option A: Docker
+
 ```bash
-# Login to Vercel
+# Build
+docker build -t my-resend .
+
+# Run
+docker run -d --name my-resend \
+  -p 3000:3000 \
+  --env-file .env.local \
+  my-resend
+```
+
+The bundled `docker-compose.yml` runs the application service alongside an optional commented-out Postgres service that initializes from `database.sql` on first boot.
+
+### Option B: Dokku
+
+```bash
+# On the Dokku host
+dokku apps:create my-resend
+dokku postgres:create my-resend-db
+dokku postgres:link my-resend-db my-resend
+dokku config:set my-resend \
+  AWS_REGION=us-east-1 \
+  AWS_ACCESS_KEY_ID=... \
+  AWS_SECRET_ACCESS_KEY=... \
+  NEXTAUTH_SECRET=... \
+  ADMIN_EMAIL=admin@example.com \
+  ADMIN_PASSWORD=... \
+  DNS_PROVIDER=digitalocean \
+  DO_API_TOKEN=...
+
+# From the workstation
+git remote add dokku dokku@your-dokku-host:my-resend
+git push dokku develop:main
+```
+
+### Option C: Coolify / CapRover / Other PaaS
+
+Any container-aware PaaS that accepts a Dockerfile works. Point it at this repository, set the environment variables in the PaaS dashboard, and let it build from the included `Dockerfile`.
+
+### Option D: Fly.io
+
+```bash
+fly launch --no-deploy        # generates fly.toml
+fly secrets set DATABASE_URL=... NEXTAUTH_SECRET=... \
+                AWS_REGION=... AWS_ACCESS_KEY_ID=... \
+                AWS_SECRET_ACCESS_KEY=... ADMIN_EMAIL=... \
+                ADMIN_PASSWORD=... DNS_PROVIDER=... DO_API_TOKEN=...
+fly deploy
+```
+
+For the database, either provision Fly Postgres (`fly postgres create`) or point `DATABASE_URL` at an external managed Postgres.
+
+### Option E: Vercel
+
+```bash
 vercel login
-
-# Deploy to production
-vercel --prod
-
-# Set environment variables
-vercel env add NEXTAUTH_URL
-vercel env add NEXTAUTH_SECRET
-vercel env add DATABASE_URL
-# ... add all other variables
-```
-
-#### Option C: One-Click Deploy
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Feibrahim%2Ffreeresend)
-
-### 4. Domain Configuration
-
-**Custom Domain:**
-1. Go to Vercel Dashboard → Settings → Domains
-2. Add your custom domain
-3. Configure DNS records as shown
-4. Update `NEXTAUTH_URL` to your custom domain
-
-**SSL Certificate:**
-- Automatically provisioned by Vercel
-- Usually takes 5-10 minutes to activate
-
-### 5. Post-Deployment Setup
-
-**Database Initialization:**
-```bash
-# Connect to your database and run:
-psql DATABASE_URL < database.sql
-```
-
-**Verify Deployment:**
-1. Visit your deployed URL
-2. Check `/api/health` endpoint
-3. Test login with admin credentials
-4. Add a test domain
-5. Send a test email
-
-**AWS SES Configuration:**
-1. Verify your domain in AWS SES Console
-2. Move out of sandbox mode (if needed)
-3. Configure DKIM and SPF records
-4. Set up SNS webhooks (optional)
-
-### 6. Performance Optimization
-
-**Vercel Configuration:**
-- Edge functions enabled automatically
-- Image optimization built-in
-- Static file caching optimized
-
-**Database:**
-- Use connection pooling
-- Enable read replicas for high traffic
-- Monitor query performance
-
-**Monitoring:**
-- Vercel Analytics enabled by default
-- Set up error tracking (Sentry recommended)
-- Monitor AWS SES metrics
-
-### 7. Scaling Considerations
-
-**Traffic Growth:**
-- Vercel scales automatically
-- Database may need upgrading
-- AWS SES limits may need increasing
-
-**Multi-Region:**
-- Configure multiple AWS regions
-- Use Vercel Edge Network
-- Consider database read replicas
-
-### 8. Security Checklist
-
-- [ ] Strong `NEXTAUTH_SECRET` (64+ characters)
-- [ ] Secure database passwords
-- [ ] AWS IAM with minimal permissions
-- [ ] Environment variables in Vercel (not in code)
-- [ ] HTTPS enforced (automatic with Vercel)
-- [ ] Regular security updates
-
-### 9. Troubleshooting
-
-**Common Issues:**
-
-**Build Errors:**
-```bash
-# Check build logs in Vercel Dashboard
-# Ensure all environment variables are set
-vercel logs
-```
-
-**Database Connection:**
-```bash
-# Test database connection
-node -e "const { Client } = require('pg'); const client = new Client(process.env.DATABASE_URL); client.connect().then(() => console.log('Connected!')).catch(console.error);"
-```
-
-**Email Sending:**
-```bash
-# Test email functionality
-node test-email.js
-```
-
-### 10. Maintenance
-
-**Regular Tasks:**
-- Monitor Vercel usage and billing
-- Update dependencies monthly
-- Review AWS SES usage and limits
-- Backup database regularly
-- Monitor error rates and performance
-
-**Updating:**
-```bash
-# For GitHub integration, just push to main branch
-git push origin main
-
-# For CLI deployment
+vercel link
+vercel env add DATABASE_URL          # repeat for each variable
 vercel --prod
 ```
 
-## Support
+Notes:
+- Vercel's serverless functions are short-lived, so long-running operations are not expected (MyResend has none).
+- Provision Postgres externally (Neon, RDS, etc.) — Vercel does not host the database.
 
-- **Documentation**: Check README.md and SETUP.md
-- **Issues**: [GitHub Issues](https://github.com/eibrahim/freeresend/issues)
-- **Professional Support**: [EliteCoders](https://elitecoders.co/)
+### Option F: Kubernetes
 
----
+The repository ships sample manifests under `k8s/` (note: those manifests still carry upstream conventions and are scheduled for sweep in a follow-up plan; treat them as a starting reference, not a turn-key deploy). For a from-scratch deploy, build the image from `Dockerfile`, push it to your registry, and write Deployment + Service + Ingress manifests with `DATABASE_URL` and the AWS credentials wired in as secrets.
 
-**Total estimated cost for production deployment: $5-15/month**
-- Vercel: Free (hobby) or $20/month (Pro)
-- Database: $5-10/month (managed service)
-- AWS SES: $1-5/month (based on volume)
-- Domain: $10-15/year
+## 5. Custom Domain and TLS
+
+Most of the platforms above terminate TLS for you (Vercel, Fly.io, Dokku with Let's Encrypt, Coolify, Kubernetes via cert-manager). After the domain points at the deployment:
+
+1. Set `NEXTAUTH_URL` to the public origin.
+2. Redeploy or restart so the new value is picked up.
+
+## 6. Post-Deployment Checklist
+
+1. Visit `https://your-domain.example.com` — the landing page should render.
+2. Seed the admin user: `curl -X POST https://your-domain.example.com/api/setup`. Re-running is safe (idempotent).
+3. Log in with `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
+4. Open the **Connections** tab and confirm both cards show `ok: true`. If either fails, the response body identifies the missing IAM action or invalid token.
+5. Add a real domain in the **Domains** tab and wait for SES verification + DKIM activation.
+6. Issue an API key for the verified domain and send a test email.
+
+## 7. Operational Notes
+
+### CI Gate
+
+`.github/workflows/ci.yml` runs `lint → typecheck → test → build` on every PR. The deployment artifact is the same `npm run build` output, so a green CI implies the deployment will build.
+
+### External Calls in Tests
+
+The Jest suite mocks every external SDK call (`aws-sdk-client-mock` for AWS, `jest.mock` for axios). It will never hit AWS, DigitalOcean, or SMTP. Trust the suite as the source of truth for behavioral testing — `npm test -- src/lib/__tests__/ses` exercises the SES path end-to-end without network.
+
+### Scaling
+
+- The web tier is stateless behind the `users`, `domains`, `api_keys`, and `email_logs` tables. Horizontal scaling is straightforward — front it with a load balancer.
+- AWS SES has account-level sending quotas (visible in the **Connections** tab via `GetAccount`). Request a quota increase before high-volume sends.
+- Route53 is rate-limited (5 changes/second per hosted zone). MyResend serializes record changes per domain, but large bulk imports should be paced.
+
+### Updating
+
+For Git-based deploys (Dokku, Fly.io, Vercel with GitHub integration), push to the tracking branch and the host rebuilds. For Docker-based deploys, rebuild the image and restart the container. Always run `psql "$DATABASE_URL" -f database.sql` after pulling a change that modifies the schema.
+
+## 8. Security Checklist
+
+- [ ] `NEXTAUTH_SECRET` is at least 64 characters of random data.
+- [ ] `AWS_*` credentials are scoped to only the SES + Route53 actions used by MyResend (see [SETUP.md](./SETUP.md) for the exact policies).
+- [ ] Secrets live in the platform's secret manager (Vercel env, Dokku config, Fly secrets, Kubernetes Secrets), never in committed files.
+- [ ] TLS is enforced end-to-end. Most platforms above do this by default.
+- [ ] Database connection uses TLS where the provider offers it (`sslmode=require` on the connection string).
+- [ ] `CRON_SECRET` is set if you expose the `/api/cron/*` endpoints.
+
+## 9. Support
+
+- Bug reports: [Orchemi/my-resend issues](https://github.com/Orchemi/my-resend/issues)
+- Attribution and upstream divergence boundary: see [NOTICE](./NOTICE).
