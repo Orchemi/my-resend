@@ -61,7 +61,7 @@ AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=your-aws-access-key
 AWS_SECRET_ACCESS_KEY=your-aws-secret-key
 
-# DNS provider selection (default: digitalocean)
+# DNS provider selection: digitalocean or route53 (default: digitalocean)
 DNS_PROVIDER=digitalocean
 
 # DigitalOcean DNS (required when DNS_PROVIDER=digitalocean)

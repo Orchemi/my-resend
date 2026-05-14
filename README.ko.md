@@ -61,7 +61,7 @@ AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=your-aws-access-key
 AWS_SECRET_ACCESS_KEY=your-aws-secret-key
 
-# DNS provider 선택 (기본값: digitalocean)
+# DNS provider 선택: digitalocean 또는 route53 (기본값: digitalocean)
 DNS_PROVIDER=digitalocean
 
 # DigitalOcean DNS (DNS_PROVIDER=digitalocean 일 때 필수)
