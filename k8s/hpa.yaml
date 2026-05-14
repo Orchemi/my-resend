@@ -1,13 +1,13 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: freeresend
-  namespace: freeresend
+  name: my-resend
+  namespace: my-resend
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: freeresend
+    name: my-resend
   minReplicas: 2
   maxReplicas: 10
   metrics:

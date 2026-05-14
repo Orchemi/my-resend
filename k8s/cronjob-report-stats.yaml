@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: report-stats
-  namespace: freeresend
+  namespace: my-resend
 spec:
   # Daily at 07:00 UTC
   schedule: "0 7 * * *"
@@ -25,7 +25,7 @@ spec:
                   echo "Reporting stats to EC Dashboard..."
                   response=$(curl -s -w "\n%{http_code}" -X POST \
                     -H "x-cron-secret: ${CRON_SECRET}" \
-                    http://freeresend/api/cron/report-stats)
+                    http://my-resend/api/cron/report-stats)
 
                   http_code=$(echo "$response" | tail -n1)
                   body=$(echo "$response" | sed '$d')
@@ -44,7 +44,7 @@ spec:
                 - name: CRON_SECRET
                   valueFrom:
                     secretKeyRef:
-                      name: freeresend-secrets
+                      name: my-resend-secrets
                       key: CRON_SECRET
               resources:
                 requests:

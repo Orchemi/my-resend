@@ -1,18 +1,18 @@
 #!/bin/bash
 
-# FreeResend Kubernetes Deployment Script
+# MyResend Kubernetes Deployment Script
 # Deploy to Digital Ocean Kubernetes
 
 set -e
 
-echo "🚀 Deploying FreeResend to Kubernetes..."
+echo "🚀 Deploying MyResend to Kubernetes..."
 
 # Build and push Docker image
 echo "📦 Building Docker image..."
-docker build --platform linux/amd64 -t registry.digitalocean.com/curatedletters/freeresend:latest .
+docker build --platform linux/amd64 -t your-registry.example.com/my-resend:latest .
 
 echo "🔄 Pushing to Digital Ocean Container Registry..."
-docker push registry.digitalocean.com/curatedletters/freeresend:latest
+docker push your-registry.example.com/my-resend:latest
 
 # Apply Kubernetes manifests
 echo "🔧 Applying Kubernetes manifests..."
@@ -35,17 +35,17 @@ kubectl apply -f k8s/ingress.yaml
 kubectl apply -f k8s/hpa.yaml
 
 echo "⏳ Waiting for deployment to be ready..."
-kubectl rollout status deployment/freeresend -n freeresend --timeout=300s
+kubectl rollout status deployment/my-resend -n my-resend --timeout=300s
 
 echo "🔍 Getting deployment status..."
-kubectl get pods -n freeresend
-kubectl get services -n freeresend
-kubectl get ingress -n freeresend
+kubectl get pods -n my-resend
+kubectl get services -n my-resend
+kubectl get ingress -n my-resend
 
-echo "✅ FreeResend deployment completed!"
-echo "🌐 Application will be available at: https://www.freeresend.com"
+echo "✅ MyResend deployment completed!"
+echo "🌐 Application will be available at: https://www.example.com"
 echo ""
 echo "📋 Useful commands:"
-echo "  kubectl get pods -n freeresend"
-echo "  kubectl logs -f deployment/freeresend -n freeresend"
-echo "  kubectl describe ingress freeresend-ingress -n freeresend"
+echo "  kubectl get pods -n my-resend"
+echo "  kubectl logs -f deployment/my-resend -n my-resend"
+echo "  kubectl describe ingress my-resend-ingress -n my-resend"
