@@ -100,7 +100,7 @@ src/
 - **Business logic** - All functions in `lib/` should have unit tests
 - **Pure functions** - Focus on input/output testing
 - **Edge cases** - Test boundary conditions and error cases
-- **Mocking** - Mock external services (SES, Digital Ocean)
+- **Mocking** - Mock external services (SES via `aws-sdk-client-mock`, DigitalOcean / Route53 via `jest.mock`)
 
 ### Component Tests
 - **User interactions** - Test user flows and form submissions
