@@ -1,23 +1,23 @@
-# Contributing to FreeResend
+# Contributing to MyResend
 
-Thank you for your interest in contributing to FreeResend! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to MyResend! This document provides guidelines and instructions for contributing.
 
 ## 🚀 Quick Start
 
 1. **Fork the repository** on GitHub
 2. **Clone your fork**:
    ```bash
-   git clone https://github.com/eibrahim/freeresend.git
-   cd freeresend
+   git clone https://github.com/Orchemi/my-resend.git
+   cd my-resend
    ```
 3. **Install dependencies**:
    ```bash
    npm install
    ```
-4. **Set up your environment** following the [README.md](README.md) Quick Start guide
-5. **Test your setup**:
+4. **Set up your environment** following the [SETUP.md](./SETUP.md) guide
+5. **Verify your setup**:
    ```bash
-   node test-email.js
+   npm test
    ```
 6. **Start development**:
    ```bash
@@ -42,7 +42,7 @@ When reporting bugs, please include:
 
 - Node.js version:
 - OS:
-- FreeResend version:
+- MyResend version:
 
 **Steps to Reproduce:**
 
@@ -71,19 +71,19 @@ Before submitting a feature request:
 
 ### Code Style
 
-- **TypeScript**: Use strict types, avoid `any`
-- **React**: Use functional components with hooks
-- **Formatting**: We use Prettier (run `npm run lint`)
-- **Naming**: Use descriptive variable/function names
-- **Comments**: Explain complex logic, not obvious code
+- **TypeScript**: Use strict types, avoid `any`. The repo holds a `tsc --noEmit` 0-error baseline — do not introduce type drift.
+- **React**: Use functional components with hooks (React 19 + Next.js 15 App Router).
+- **Linting**: Run `npm run lint` (ESLint with `next/core-web-vitals`).
+- **Naming**: Use descriptive variable/function names.
+- **Comments**: Explain complex logic, not obvious code.
 
 ### Architecture Principles
 
-- **API Compatibility**: Maintain Resend SDK compatibility
-- **Security First**: Validate all inputs, sanitize outputs
-- **Database**: Use Supabase RLS policies for security
-- **Error Handling**: Graceful degradation with informative messages
-- **Testing**: Test all new features thoroughly
+- **API Compatibility**: Maintain Resend SDK compatibility.
+- **Security First**: Validate all inputs, sanitize outputs.
+- **Database**: Raw `pg` queries with the schema in `database.sql`. No ORM or migration framework — schema changes go directly into `database.sql` and the TypeScript interfaces in `src/lib/database.ts`.
+- **Error Handling**: Graceful degradation with informative messages.
+- **Testing**: Cover new behavior with Jest unit/integration tests. External SDK calls must be mocked (`aws-sdk-client-mock` for AWS, `jest.mock` for axios) — the suite must never hit real endpoints.
 
 ### File Organization
 
@@ -93,8 +93,11 @@ src/
 ├── components/        # Reusable UI components
 ├── contexts/          # React context providers
 ├── lib/               # Core business logic
-│   ├── supabase.ts    # Database operations
-│   ├── ses.ts         # Email sending logic
+│   ├── database.ts    # Database operations (raw pg)
+│   ├── ses.ts         # Email sending logic (AWS SDK v3 SESv2)
+│   ├── dns-provider.ts # DNS dispatch (DigitalOcean / Route53)
+│   ├── digitalocean.ts # DigitalOcean DNS implementation
+│   ├── route53.ts     # Route53 DNS implementation
 │   ├── domains.ts     # Domain management
 │   └── middleware.ts  # API middleware
 ```
@@ -104,35 +107,40 @@ src/
 ### Running Tests
 
 ```bash
-# Test email functionality (requires setup)
-node test-email.js
+# Run the full Jest suite
+npm test
 
-# Test with cURL
-./test-curl.sh
+# Watch mode
+npm run test:watch
 
-# Lint code
+# Coverage report
+npm run test:coverage
+
+# Lint
 npm run lint
 
 # Type checking
-npm run type-check
+npm run typecheck
 ```
+
+The CI gate (`.github/workflows/ci.yml`) runs `lint → typecheck → test → build` on every PR. Run all four locally before submitting.
 
 ### Writing Tests
 
-- **API endpoints**: Test success and error cases
-- **Email sending**: Verify integration with SES
-- **Domain setup**: Test DNS record generation
-- **Authentication**: Test JWT and API key validation
+- **API endpoints**: Test success and error cases.
+- **Email sending**: Verify SES integration via `aws-sdk-client-mock`.
+- **Domain setup**: Test DNS record generation for both DigitalOcean and Route53 paths.
+- **Authentication**: Test JWT and API key validation.
 
 ## 🚀 Pull Request Process
 
 ### Before Submitting
 
-1. **Create a feature branch**: `git checkout -b feature/your-feature-name`
-2. **Test thoroughly**: Ensure all functionality works
-3. **Update documentation**: Add/update relevant docs
-4. **Follow code style**: Run linting and formatting
-5. **Write clear commits**: Use descriptive commit messages
+1. **Create a feature branch**: branch from `develop` using `<type>/<issue>` naming (e.g. `feat/42`, `fix/55`).
+2. **Test thoroughly**: Run the CI 4-stage gate locally.
+3. **Update documentation**: Add/update relevant docs.
+4. **Follow code style**: Run linting and type checking.
+5. **Write clear commits**: Conventional Commits with scope (e.g. `feat(route53): ...`, `refactor(types): ...`). Issue suffix is not used.
 
 ### PR Description Template
 
@@ -145,8 +153,7 @@ npm run type-check
 
 ## Testing
 
-- [ ] Tested locally with `node test-email.js`
-- [ ] Tested new functionality manually
+- [ ] CI gate passed locally (`npm run lint && npm run typecheck && npm test && npm run build`)
 - [ ] Updated documentation
 - [ ] No breaking changes (or documented)
 
@@ -161,11 +168,11 @@ npm run type-check
 
 ### Review Process
 
-1. **Automated checks**: Must pass CI/CD pipeline
-2. **Code review**: Maintainer will review code quality
-3. **Testing**: Verify functionality works as expected
-4. **Documentation**: Ensure docs are updated
-5. **Merge**: Once approved, PR will be merged
+1. **Automated checks**: Must pass the CI 4-stage gate.
+2. **Code review**: Maintainer will review code quality.
+3. **Testing**: Verify functionality works as expected.
+4. **Documentation**: Ensure docs are updated.
+5. **Merge**: Once approved, the PR will be merged into `develop`.
 
 ## 🎯 Good First Issues
 
@@ -188,22 +195,25 @@ cp .env.local.example .env.local
 
 **Required for development:**
 
-- Supabase credentials (database)
-- AWS SES credentials (email sending)
-- Admin credentials (initial setup)
+- PostgreSQL `DATABASE_URL`
+- AWS SES credentials (`AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
+- `NEXTAUTH_SECRET` (64+ char random)
+- `ADMIN_EMAIL` / `ADMIN_PASSWORD` (seeded by `POST /api/setup`)
 
-**Optional:**
+**Conditional:**
 
-- Digital Ocean token (DNS automation)
+- `DO_API_TOKEN` when `DNS_PROVIDER=digitalocean` (default)
+- Route53 IAM policy when `DNS_PROVIDER=route53` (see [SETUP.md](./SETUP.md))
+
+See `CLAUDE.md § Environment Configuration` for the full key reference.
 
 ### Common Development Tasks
 
 ```bash
-# Reset database (be careful!)
-# Only in development - never in production
-npm run db:reset
+# Apply schema changes (idempotent — CREATE TABLE IF NOT EXISTS)
+psql "$DATABASE_URL" -f database.sql
 
-# View logs
+# View dev logs filtered for errors and warnings
 npm run dev | grep -E "(error|warn)"
 
 # Build for production
@@ -212,37 +222,36 @@ npm run build
 
 ### Debugging Tips
 
-1. **Check logs**: Browser console + terminal output
-2. **Verify environment**: All required env vars set?
-3. **Test connectivity**: Can you reach Supabase/AWS?
-4. **Email delivery**: Check AWS SES console for failures
-5. **DNS issues**: Use `dig` to verify DNS records
+1. **Check logs**: Browser console + terminal output.
+2. **Verify environment**: All required env vars set? Compare against `.env.local.example`.
+3. **Test connectivity**: Open the admin **Connections** tab — both SES and DNS cards should report `ok: true`.
+4. **Email delivery**: Check the AWS SES console for failures.
+5. **DNS issues**: Use `dig` to verify the records that the Domains tab generated.
 
 ## 📚 Learning Resources
 
 - [Next.js Documentation](https://nextjs.org/docs)
-- [Supabase Documentation](https://supabase.com/docs)
-- [AWS SES Documentation](https://docs.aws.amazon.com/ses/)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+- [AWS SES v2 API Reference](https://docs.aws.amazon.com/sesv2/latest/APIReference/Welcome.html)
 - [Resend API Documentation](https://resend.com/docs)
 
 ## ❓ Getting Help
 
-- **Documentation**: Check README.md and SETUP.md first
-- **Issues**: Search existing GitHub issues
-- **Discussions**: Use GitHub Discussions for questions
-- **Code Review**: Ask for feedback on draft PRs
-- **Professional Support**: For enterprise deployments or custom development, contact [EliteCoders](https://elitecoders.co/)
+- **Documentation**: Check [README.md](./README.md) and [SETUP.md](./SETUP.md) first.
+- **Issues**: Search existing GitHub issues.
+- **Discussions**: Use GitHub Discussions for questions.
+- **Code Review**: Ask for feedback on draft PRs.
 
 ## 🙏 Recognition
 
 Contributors will be:
 
-- Listed in README.md
+- Listed in [README.md](./README.md)
 - Credited in release notes
 - Recognized in the community
 
-Thank you for helping make FreeResend better! 🚀
+Thank you for helping make MyResend better! 🚀
 
 ---
 
-**FreeResend** is built and maintained by **[Emad Ibrahim](https://x.com/eibrahim)** with professional support from [**EliteCoders**](https://elitecoders.co/) - building powerful software solutions for businesses worldwide. 🌎
+Attribution and the divergence boundary from the upstream project are documented in [NOTICE](./NOTICE).
