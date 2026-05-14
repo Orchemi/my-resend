@@ -73,7 +73,7 @@ DO_API_TOKEN=your-digitalocean-api-token
 # AWS_HOSTED_ZONE_ID=Z0123456789ABCDEFGHIJ
 
 # 관리자
-ADMIN_EMAIL=admin@yourdomain.com
+ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=your-secure-admin-password
 ```
 
@@ -195,7 +195,7 @@ import { Resend } from "resend";
 const resend = new Resend("your-my-resend-api-key");
 
 const { data, error } = await resend.emails.send({
-  from: "onboarding@yourdomain.com",
+  from: "onboarding@example.com",
   to: ["user@example.com"],
   subject: "Hello World",
   html: "<strong>it works!</strong>",
@@ -212,7 +212,7 @@ const response = await fetch("https://your-my-resend-domain.com/api/emails", {
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    from: "onboarding@yourdomain.com",
+    from: "onboarding@example.com",
     to: ["user@example.com"],
     subject: "Hello World",
     html: "<strong>it works!</strong>",
@@ -255,11 +255,11 @@ const response = await fetch("https://your-my-resend-domain.com/api/emails", {
 
 1. my-resend 대시보드에서 **도메인을 추가**합니다
 2. **DNS 레코드** 가 생성되며, DNS provider 가 설정되어 있으면 자동 적용되고 그렇지 않으면 수동 등록용으로 표시됩니다:
-   - **TXT 레코드** — `_amazonses.yourdomain.com` (SES 도메인 verify)
-   - **MX 레코드** — `yourdomain.com` (SES 통한 메일 수신)
-   - **SPF 레코드** — `yourdomain.com` (sender policy framework)
-   - **DMARC 레코드** — `_dmarc.yourdomain.com` (이메일 인증 정책)
-   - **DKIM 레코드** — `*._domainkey.yourdomain.com` 의 CNAME 3개 (이메일 서명)
+   - **TXT 레코드** — `_amazonses.example.com` (SES 도메인 verify)
+   - **MX 레코드** — `example.com` (SES 통한 메일 수신)
+   - **SPF 레코드** — `example.com` (sender policy framework)
+   - **DMARC 레코드** — `_dmarc.example.com` (이메일 인증 정책)
+   - **DKIM 레코드** — `*._domainkey.example.com` 의 CNAME 3개 (이메일 서명)
 3. **도메인 verify** — DNS 레코드가 propagate 되면 "Check Verification" 버튼을 클릭합니다 (백그라운드 polling 도 동시 진행)
 4. **API key 생성** — verify 된 도메인에 대해 API key 를 발급합니다
 5. **발송 시작** — my-resend 또는 Resend SDK 로 API key 를 사용해 메일을 발송합니다
@@ -300,13 +300,13 @@ npm run test:coverage       # 커버리지 리포트
 
 - ✅ `AWS_HOSTED_ZONE_ID` 는 선택입니다 — 미설정 시 발송 도메인으로부터 `ListHostedZonesByName` 을 통해 hosted zone 을 자동 탐지합니다 (서브도메인은 parent zone 까지 walk-up). `verifyDomainOwnership` 는 `false` 를 반환하고 `setupDomainDNS` 는 계정에 매칭되는 hosted zone 이 전혀 없을 때만 throw 합니다
 - ✅ IAM user 가 `route53:GetHostedZone`, `route53:ListHostedZonesByName`, `route53:ListResourceRecordSets`, `route53:ChangeResourceRecordSets` 권한을 가져야 합니다
-- ✅ 자동 탐지 테스트: `aws route53 list-hosted-zones-by-name --dns-name yourdomain.com.`
+- ✅ 자동 탐지 테스트: `aws route53 list-hosted-zones-by-name --dns-name example.com.`
 - ✅ zone 테스트: `aws route53 get-hosted-zone --id YOUR_HOSTED_ZONE_ID`
 
 **Q: 도메인 verify 가 "pending" 에서 멈춰있습니다**
 
 - ✅ DNS propagation 은 보통 5-30분이 소요됩니다
-- ✅ 레코드 확인: `dig TXT _amazonses.yourdomain.com` / `dig CNAME tok1._domainkey.yourdomain.com`
+- ✅ 레코드 확인: `dig TXT _amazonses.example.com` / `dig CNAME tok1._domainkey.example.com`
 - ✅ 모든 DKIM CNAME (3개) 와 SES verify TXT 가 가시 상태인지 확인하세요
 
 **Q: AWS SES 권한 에러가 발생합니다**

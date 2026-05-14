@@ -73,7 +73,7 @@ DO_API_TOKEN=your-digitalocean-api-token
 # AWS_HOSTED_ZONE_ID=Z0123456789ABCDEFGHIJ
 
 # Admin
-ADMIN_EMAIL=admin@yourdomain.com
+ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=your-secure-admin-password
 ```
 
@@ -195,7 +195,7 @@ import { Resend } from "resend";
 const resend = new Resend("your-my-resend-api-key");
 
 const { data, error } = await resend.emails.send({
-  from: "onboarding@yourdomain.com",
+  from: "onboarding@example.com",
   to: ["user@example.com"],
   subject: "Hello World",
   html: "<strong>it works!</strong>",
@@ -212,7 +212,7 @@ const response = await fetch("https://your-my-resend-domain.com/api/emails", {
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    from: "onboarding@yourdomain.com",
+    from: "onboarding@example.com",
     to: ["user@example.com"],
     subject: "Hello World",
     html: "<strong>it works!</strong>",
@@ -255,11 +255,11 @@ const response = await fetch("https://your-my-resend-domain.com/api/emails", {
 
 1. **Add a domain** in the my-resend dashboard
 2. **DNS records** are generated and either applied automatically (if a DNS provider is configured) or displayed for manual setup:
-   - **TXT record** — `_amazonses.yourdomain.com` for SES domain verification
-   - **MX record** — `yourdomain.com` for receiving emails via SES
-   - **SPF record** — `yourdomain.com` for sender policy framework
-   - **DMARC record** — `_dmarc.yourdomain.com` for email authentication policy
-   - **DKIM records** — three CNAME records under `*._domainkey.yourdomain.com` for email signing
+   - **TXT record** — `_amazonses.example.com` for SES domain verification
+   - **MX record** — `example.com` for receiving emails via SES
+   - **SPF record** — `example.com` for sender policy framework
+   - **DMARC record** — `_dmarc.example.com` for email authentication policy
+   - **DKIM records** — three CNAME records under `*._domainkey.example.com` for email signing
 3. **Verify the domain** — click "Check Verification" once DNS records are live; SES verification is polled in the background as well
 4. **Create an API key** — generate keys for verified domains
 5. **Start sending** — use the API key with my-resend or the Resend SDK
@@ -300,13 +300,13 @@ For end-to-end verification against real AWS, send a test email from the dashboa
 
 - ✅ `AWS_HOSTED_ZONE_ID` is optional — if unset, the zone is auto-discovered from the sending domain via `ListHostedZonesByName` (walking up to parent zones). `verifyDomainOwnership` returns `false` and `setupDomainDNS` throws only when no matching hosted zone exists in the account
 - ✅ The IAM user needs `route53:GetHostedZone`, `route53:ListHostedZonesByName`, `route53:ListResourceRecordSets`, and `route53:ChangeResourceRecordSets`
-- ✅ Test discovery: `aws route53 list-hosted-zones-by-name --dns-name yourdomain.com.`
+- ✅ Test discovery: `aws route53 list-hosted-zones-by-name --dns-name example.com.`
 - ✅ Test the zone: `aws route53 get-hosted-zone --id YOUR_HOSTED_ZONE_ID`
 
 **Q: Domain verification stuck at "pending"**
 
 - ✅ DNS propagation typically takes 5–30 minutes
-- ✅ Check the records: `dig TXT _amazonses.yourdomain.com` / `dig CNAME tok1._domainkey.yourdomain.com`
+- ✅ Check the records: `dig TXT _amazonses.example.com` / `dig CNAME tok1._domainkey.example.com`
 - ✅ Make sure all DNKIM CNAMEs (3) plus the SES verification TXT are visible
 
 **Q: AWS SES permissions error**
