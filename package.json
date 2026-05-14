@@ -1,11 +1,8 @@
 {
   "name": "my-resend",
   "version": "0.1.0",
-  "description": "Self-hosted, open-source mail gateway with a Resend-compatible API. Hard-fork of eibrahim/freeresend with planned SES v2 + Route53 support.",
+  "description": "Self-hosted, open-source mail gateway with a Resend-compatible API on Amazon SES v2 and DNS provider abstraction (DigitalOcean / Route53). See NOTICE for upstream attribution.",
   "author": "Park Seunghun / Orchemi (https://github.com/Orchemi)",
-  "contributors": [
-    "Emad Ibrahim <eibrahim@gmail.com> (https://x.com/eibrahim) — original author of upstream eibrahim/freeresend"
-  ],
   "license": "MIT",
   "homepage": "https://github.com/Orchemi/my-resend#readme",
   "repository": {
