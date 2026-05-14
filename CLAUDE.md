@@ -77,7 +77,7 @@ The schema lives in `database.sql`; there is no migration framework — apply on
 - `verifyDomain` swallows `AlreadyExistsException` and falls through to `GetEmailIdentity` to keep idempotency
 
 **DNS Provider Abstraction** (`src/lib/dns-provider.ts`):
-- Selected at runtime by `DNS_PROVIDER` (`digitalocean` | `route53`, default `digitalocean`)
+- Selected at runtime by `DNS_PROVIDER` (`route53` | `digitalocean`, default `route53`)
 - Exposes `setupDomainDNS(domain, dnsRecords)` and `verifyDomainOwnership(domain)`
 - Normalises every provider's native record shape to `DnsProviderRecord { type, name, value, ttl }` so consumers stay provider-agnostic
 - Unknown `DNS_PROVIDER` values throw (fail-fast) — silent fallback would mask typos
@@ -172,7 +172,7 @@ AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
 
 # DNS provider selection
-DNS_PROVIDER=digitalocean        # or "route53"; defaults to "digitalocean"
+DNS_PROVIDER=route53             # or "digitalocean"; defaults to "route53"
 
 # DigitalOcean (required when DNS_PROVIDER=digitalocean)
 DO_API_TOKEN=...

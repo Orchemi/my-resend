@@ -128,8 +128,8 @@ src/
 
 ### DNS Provider Abstraction
 
-- `DNS_PROVIDER=digitalocean` (default) routes to DigitalOcean's DNS API via axios
-- `DNS_PROVIDER=route53` routes to AWS Route53 via the AWS SDK v3
+- `DNS_PROVIDER=route53` (default) routes to AWS Route53 via the AWS SDK v3
+- `DNS_PROVIDER=digitalocean` routes to DigitalOcean's DNS API via axios
 - Each provider implements the same shape (`setupDomainDNS`, `verifyDomainOwnership`, `checkProvider`); the dispatcher is in `src/lib/dns-provider.ts`
 - Provider isolation is verified by an integration suite (only one provider's client is exercised per `DNS_PROVIDER` mode)
 

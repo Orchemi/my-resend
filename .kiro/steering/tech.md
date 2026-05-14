@@ -14,8 +14,8 @@
 
 ## External Services
 - **Amazon SES (v2)** - Email delivery service (`@aws-sdk/client-sesv2`)
-- **DigitalOcean API** - DNS management when `DNS_PROVIDER=digitalocean` (default)
-- **AWS Route53** - DNS management when `DNS_PROVIDER=route53` (`@aws-sdk/client-route-53`)
+- **AWS Route53** - DNS management when `DNS_PROVIDER=route53` (default, `@aws-sdk/client-route-53`)
+- **DigitalOcean API** - DNS management when `DNS_PROVIDER=digitalocean`
 - **AWS SDK v3** - Modern AWS client library (SES v2, Route53, IAM)
 
 ## Authentication & Security
@@ -72,7 +72,7 @@ Required environment variables:
 - `NEXTAUTH_URL` - Application URL
 - `NEXTAUTH_SECRET` - JWT signing secret
 - `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` - SES credentials
-- `DNS_PROVIDER` - `digitalocean` (default) or `route53`
-- `DO_API_TOKEN` - DigitalOcean API token (required when `DNS_PROVIDER=digitalocean`)
+- `DNS_PROVIDER` - `route53` (default) or `digitalocean`
 - `AWS_HOSTED_ZONE_ID` - Route53 hosted zone ID (optional, auto-discovered when unset)
+- `DO_API_TOKEN` - DigitalOcean API token (required when `DNS_PROVIDER=digitalocean`)
 - `ADMIN_EMAIL`, `ADMIN_PASSWORD` - Initial admin credentials

@@ -6,8 +6,8 @@
  * directly. The active provider is selected by the `DNS_PROVIDER` env var.
  *
  * Supported providers:
- *   - `digitalocean` (default — backward compatible with upstream fork)
- *   - `route53`
+ *   - `route53` (default — SES operators typically already hold Route53 IAM)
+ *   - `digitalocean`
  *
  * Adding a new provider: implement `setupDomainDNS` and
  * `verifyDomainOwnership` in a new module, then extend the union type and
@@ -71,7 +71,7 @@ export type DnsHealth =
       };
     };
 
-const DEFAULT_PROVIDER: DnsProviderName = "digitalocean";
+const DEFAULT_PROVIDER: DnsProviderName = "route53";
 const SUPPORTED_PROVIDERS: readonly DnsProviderName[] = [
   "digitalocean",
   "route53",
@@ -80,7 +80,8 @@ const SUPPORTED_PROVIDERS: readonly DnsProviderName[] = [
 /**
  * Resolve the active DNS provider from `DNS_PROVIDER`.
  *
- * - Unset / empty -> `digitalocean` (backward compat).
+ * - Unset / empty -> `route53` (default — SES operators usually already
+ *   hold the matching Route53 IAM scope).
  * - Case-insensitive match against the supported set.
  * - Unknown value -> throw (fail-fast: catches typos rather than silently
  *   falling back to the default and surprising the operator).

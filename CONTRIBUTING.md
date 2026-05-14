@@ -202,8 +202,8 @@ cp .env.local.example .env.local
 
 **Conditional:**
 
-- `DO_API_TOKEN` when `DNS_PROVIDER=digitalocean` (default)
-- Route53 IAM policy when `DNS_PROVIDER=route53` (see [SETUP.md](./SETUP.md))
+- Route53 IAM policy when `DNS_PROVIDER=route53` (default — see [SETUP.md](./SETUP.md))
+- `DO_API_TOKEN` when `DNS_PROVIDER=digitalocean`
 
 See `CLAUDE.md § Environment Configuration` for the full key reference.
 

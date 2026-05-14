@@ -37,9 +37,9 @@ AWS_SECRET_ACCESS_KEY=
 ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=
 
-# DNS provider (default: digitalocean)
-DNS_PROVIDER=digitalocean
-DO_API_TOKEN=dop_v1_...
+# DNS provider (default: route53)
+DNS_PROVIDER=route53
+# DO_API_TOKEN=dop_v1_...   # required only when DNS_PROVIDER=digitalocean
 
 # Optional
 # AWS_HOSTED_ZONE_ID=...                        # route53 mode, optional
