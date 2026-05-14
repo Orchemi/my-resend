@@ -1,5 +1,7 @@
 # MyResend Deployment Guide
 
+> 🌐 **Languages**: **English** · [한국어](./DEPLOYMENT.ko.md)
+
 MyResend is a standard Next.js 15 application. Any host that can run Node 20+ and reach a PostgreSQL database works. This guide lists the supported deployment options side by side, plus the steps that are common to all of them.
 
 For local first-run setup, see [SETUP.md](./SETUP.md).

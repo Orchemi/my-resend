@@ -1,5 +1,7 @@
 # MyResend Setup Guide
 
+> 🌐 **Languages**: **English** · [한국어](./SETUP.ko.md)
+
 This guide walks you through running MyResend from scratch on a local machine. For production deployment, see [DEPLOYMENT.md](./DEPLOYMENT.md).
 
 ## 1. Prerequisites Setup
@@ -288,7 +290,7 @@ Value: 10 inbound-smtp.us-east-1.amazonaws.com
 
 ## 9. References
 
-- API documentation: [README.md](./README.md) (English) or [README.ko.md](./README.ko.md) (Korean)
+- API documentation: [README.md](./README.md)
 - Database schema: [database.sql](./database.sql)
 - Environment variable reference: `CLAUDE.md § Environment Configuration`
 - Implementation entry points: `src/lib/ses.ts`, `src/lib/dns-provider.ts`, `src/lib/route53.ts`, `src/lib/digitalocean.ts`

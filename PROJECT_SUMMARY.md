@@ -1,5 +1,7 @@
 # MyResend - Project Summary
 
+> 🌐 **Languages**: **English** · [한국어](./PROJECT_SUMMARY.ko.md)
+
 ## Overview
 
 MyResend is a self-hosted, Resend-compatible mail gateway. It is built on Next.js 15, delivers email through Amazon SES via the AWS SDK v3 (`@aws-sdk/client-sesv2`), and manages domain DNS records through either DigitalOcean DNS or AWS Route53 — selectable at runtime via the `DNS_PROVIDER` environment variable.
