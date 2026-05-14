@@ -60,9 +60,9 @@ describe("getDnsProviderName", () => {
     }
   });
 
-  it("returns 'digitalocean' when DNS_PROVIDER is unset (backward compat)", () => {
+  it("returns 'route53' when DNS_PROVIDER is unset (default)", () => {
     delete process.env.DNS_PROVIDER;
-    expect(getDnsProviderName()).toBe("digitalocean");
+    expect(getDnsProviderName()).toBe("route53");
   });
 
   it("returns 'digitalocean' when DNS_PROVIDER='digitalocean'", () => {
@@ -87,7 +87,7 @@ describe("getDnsProviderName", () => {
 
   it("treats empty string as unset and falls back to default", () => {
     process.env.DNS_PROVIDER = "";
-    expect(getDnsProviderName()).toBe("digitalocean");
+    expect(getDnsProviderName()).toBe("route53");
   });
 });
 

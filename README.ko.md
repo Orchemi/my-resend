@@ -61,8 +61,8 @@ AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=your-aws-access-key
 AWS_SECRET_ACCESS_KEY=your-aws-secret-key
 
-# DNS provider 선택: digitalocean 또는 route53 (기본값: digitalocean)
-DNS_PROVIDER=digitalocean
+# DNS provider 선택: route53 또는 digitalocean (기본값: route53)
+DNS_PROVIDER=route53
 
 # DigitalOcean DNS (DNS_PROVIDER=digitalocean 일 때 필수)
 DO_API_TOKEN=your-digitalocean-api-token
@@ -125,7 +125,7 @@ npm run dev
 
 ## DNS Provider 셋업
 
-발송 도메인을 호스팅하는 provider 를 선택합니다. 활성 provider 는 `DNS_PROVIDER` 로 결정되며, 기본값은 upstream fork 와의 backward compatibility 를 위해 `digitalocean` 입니다. `DNS_PROVIDER` 가 알 수 없는 값이면 startup 시 throw — 오타가 silent 로 default 에 폴백되는 것을 방지합니다.
+발송 도메인을 호스팅하는 provider 를 선택합니다. 활성 provider 는 `DNS_PROVIDER` 로 결정되며, 기본값은 `route53` 입니다 — SES 운영자가 동일 AWS IAM 으로 Route53 권한을 함께 보유한 경우가 많기 때문. `DNS_PROVIDER` 가 알 수 없는 값이면 startup 시 throw — 오타가 silent 로 default 에 폴백되는 것을 방지합니다.
 
 ### 옵션 A — DigitalOcean DNS
 
@@ -288,7 +288,7 @@ npm run test:coverage       # 커버리지 리포트
 **Q: `DNS_PROVIDER` 가 startup 시 throw 합니다**
 
 - ✅ 허용 값은 `digitalocean` 과 `route53` 입니다. 알 수 없는 값은 의도적으로 거부되어 오타가 silent 로 default 에 폴백되는 것을 방지합니다
-- ✅ 변수를 설정하지 않으면 `digitalocean` (default) 으로 동작합니다
+- ✅ 변수를 설정하지 않으면 `route53` (default) 으로 동작합니다
 
 **Q: DigitalOcean DNS 자동화가 동작하지 않습니다**
 

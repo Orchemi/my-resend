@@ -61,8 +61,8 @@ AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=your-aws-access-key
 AWS_SECRET_ACCESS_KEY=your-aws-secret-key
 
-# DNS provider selection: digitalocean or route53 (default: digitalocean)
-DNS_PROVIDER=digitalocean
+# DNS provider selection: route53 or digitalocean (default: route53)
+DNS_PROVIDER=route53
 
 # DigitalOcean DNS (required when DNS_PROVIDER=digitalocean)
 DO_API_TOKEN=your-digitalocean-api-token
@@ -125,7 +125,7 @@ Visit `http://localhost:3000` and log in with your admin credentials.
 
 ## DNS Provider Setup
 
-Pick whichever provider hosts your sending domain. The active provider is chosen by `DNS_PROVIDER`; default is `digitalocean` for backward compatibility with the upstream fork. Setting `DNS_PROVIDER` to an unknown value throws on startup so a typo can't silently fall back to the wrong provider.
+Pick whichever provider hosts your sending domain. The active provider is chosen by `DNS_PROVIDER`; default is `route53` because SES operators usually already hold a matching Route53 IAM scope under the same AWS account. Setting `DNS_PROVIDER` to an unknown value throws on startup so a typo can't silently fall back to the wrong provider.
 
 ### Option A — DigitalOcean DNS
 
@@ -288,7 +288,7 @@ For end-to-end verification against real AWS, send a test email from the dashboa
 **Q: `DNS_PROVIDER` throws at startup**
 
 - ✅ Allowed values are `digitalocean` and `route53`. Unknown values are rejected on purpose so a typo can't silently fall back to the default
-- ✅ Leave the variable unset to use `digitalocean` (default)
+- ✅ Leave the variable unset to use `route53` (default)
 
 **Q: DigitalOcean DNS automation not working**
 

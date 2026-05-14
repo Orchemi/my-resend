@@ -72,13 +72,9 @@ MyResend uses raw `pg` queries (no ORM) and bootstraps from a single SQL file. A
 
 MyResend dispatches domain DNS setup to the provider chosen by `DNS_PROVIDER`. Pick one:
 
-1. **DigitalOcean** (default, `DNS_PROVIDER=digitalocean`)
+1. **Route53** (default, `DNS_PROVIDER=route53`)
 
-   Create an API token at [DigitalOcean → API → Tokens](https://cloud.digitalocean.com/account/api/tokens) with read+write scope and add the target domains to DO's DNS management. Set `DO_API_TOKEN`.
-
-2. **Route53** (`DNS_PROVIDER=route53`)
-
-   Reuse the AWS credentials from the SES step. Attach the following policy to the same IAM user. Actions correspond to the Route53 commands in `src/lib/route53.ts`:
+   Reuse the AWS credentials from the SES step. Attach the following policy to the same IAM user — most SES operators already hold a Route53 scope under the same account. Actions correspond to the Route53 commands in `src/lib/route53.ts`:
 
    ```json
    {
@@ -103,6 +99,10 @@ MyResend dispatches domain DNS setup to the provider chosen by `DNS_PROVIDER`. P
 
    `AWS_HOSTED_ZONE_ID` is optional — if unset, MyResend auto-discovers the hosted zone for the sending domain via `ListHostedZonesByName`, walking up to parent zones.
 
+2. **DigitalOcean** (`DNS_PROVIDER=digitalocean`)
+
+   Create an API token at [DigitalOcean → API → Tokens](https://cloud.digitalocean.com/account/api/tokens) with read+write scope and add the target domains to DO's DNS management. Set `DO_API_TOKEN`.
+
 ## 2. Environment Configuration
 
 1. Copy the example environment file:
@@ -122,10 +122,10 @@ MyResend dispatches domain DNS setup to the provider chosen by `DNS_PROVIDER`. P
    AWS_ACCESS_KEY_ID=AKIA...
    AWS_SECRET_ACCESS_KEY=...
 
-   # DNS provider (default: digitalocean)
-   DNS_PROVIDER=digitalocean
-   DO_API_TOKEN=dop_v1_...        # required when DNS_PROVIDER=digitalocean
-   # AWS_HOSTED_ZONE_ID=...       # optional, route53 mode
+   # DNS provider (default: route53)
+   DNS_PROVIDER=route53
+   # AWS_HOSTED_ZONE_ID=...       # optional, route53 auto-discovers when unset
+   # DO_API_TOKEN=dop_v1_...      # required only when DNS_PROVIDER=digitalocean
 
    # Security
    NEXTAUTH_SECRET=               # 64+ char random — `openssl rand -base64 64`
