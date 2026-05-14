@@ -2,10 +2,10 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: postgres-init
-  namespace: freeresend
+  namespace: my-resend
 data:
   init.sql: |
-    -- FreeResend Database Schema
+    -- MyResend Database Schema
 
     -- Users table
     CREATE TABLE IF NOT EXISTS users (

@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "MyResend - Self-hosted Mail Gateway with Resend-compatible API",
   description:
-    "Open-source, self-hosted mail gateway built on Amazon SES with a Resend-compatible API. Hard-fork of eibrahim/freeresend with planned SES v2 + Route53 support.",
+    "Open-source, self-hosted mail gateway built on Amazon SES v2 with a Resend-compatible API and DNS provider abstraction (DigitalOcean / Route53).",
   keywords: "resend alternative, self-hosted email, amazon ses, ses v2, route53, transactional email, email api, open source, mail gateway",
   authors: [{ name: "Park Seunghun / Orchemi", url: "https://github.com/Orchemi" }],
   creator: "Park Seunghun / Orchemi",

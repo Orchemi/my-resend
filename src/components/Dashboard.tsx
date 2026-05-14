@@ -113,7 +113,7 @@ export default function Dashboard() {
                 rel="noopener noreferrer"
                 className="text-gray-500 hover:text-gray-700"
               >
-                Originally based on freeresend by Emad Ibrahim (MIT)
+                Hard-fork — see NOTICE for upstream attribution
               </a>
             </div>
             <div className="text-xs">

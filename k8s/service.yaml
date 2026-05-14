@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: freeresend
-  namespace: freeresend
+  name: my-resend
+  namespace: my-resend
   labels:
-    app: freeresend
+    app: my-resend
 spec:
   selector:
-    app: freeresend
+    app: my-resend
   ports:
     - name: http
       port: 80

@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: freeresend
-  namespace: freeresend
+  name: my-resend
+  namespace: my-resend
   labels:
-    app: freeresend
+    app: my-resend
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: freeresend
+      app: my-resend
   template:
     metadata:
       labels:
-        app: freeresend
+        app: my-resend
     spec:
       containers:
-        - name: freeresend
-          image: registry.digitalocean.com/curatedletters/freeresend:latest
+        - name: my-resend
+          image: your-registry.example.com/my-resend:latest
           ports:
             - containerPort: 3000
               name: http
@@ -30,7 +30,7 @@ spec:
               value: "0.0.0.0"
           envFrom:
             - secretRef:
-                name: freeresend-secrets
+                name: my-resend-secrets
           resources:
             requests:
               cpu: 200m
@@ -66,4 +66,4 @@ spec:
             successThreshold: 1
             failureThreshold: 30
       imagePullSecrets:
-        - name: curatedletters
+        - name: registry-pull
