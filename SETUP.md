@@ -74,7 +74,24 @@ MyResend dispatches domain DNS setup to the provider chosen by `DNS_PROVIDER`. P
 
 1. **Route53** (default, `DNS_PROVIDER=route53`)
 
-   Reuse the AWS credentials from the SES step. Attach the following policy to the same IAM user — most SES operators already hold a Route53 scope under the same account. Actions correspond to the Route53 commands in `src/lib/route53.ts`:
+   Recommended when your AWS account already handles SES — the same IAM principal can manage Route53 without an extra credential, and the entire flow (send + DNS) stays under one audit trail.
+
+   **a. Create a Route53 hosted zone for your sending domain**
+
+   - AWS Console → Route53 → Hosted zones → **Create hosted zone**.
+   - Domain name: the apex you'll send from (e.g. `example.com`). Subdomains like `mail.example.com` can be served either from a dedicated subzone or from the apex zone — MyResend's `AWS_HOSTED_ZONE_ID` auto-discovery walks up to parent zones, so the apex usually suffices.
+   - Type: **Public hosted zone**.
+   - Take note of the 4 NS records AWS assigns to the new zone — you'll need them in step (b).
+
+   **b. Delegate the domain at your registrar**
+
+   At your domain registrar (Namecheap, GoDaddy, Cloudflare-as-registrar, Gandi, etc.), replace the existing NS records for the domain with the 4 NS values from step (a). DNS propagation can take from minutes to 48 hours depending on the prior TTL. Until delegation completes, SES verification TXT records that MyResend writes into Route53 won't be visible from the public internet — domain verification stays "pending".
+
+   If the domain already lives in Route53 (e.g. registered through Route53 Domains, or a prior project), skip (a) and (b).
+
+   **c. Attach the Route53 IAM policy**
+
+   Add this statement to the IAM user from the SES step above. Actions map 1:1 to the Route53 commands MyResend issues in `src/lib/route53.ts`:
 
    ```json
    {
@@ -97,11 +114,20 @@ MyResend dispatches domain DNS setup to the provider chosen by `DNS_PROVIDER`. P
    }
    ```
 
-   `AWS_HOSTED_ZONE_ID` is optional — if unset, MyResend auto-discovers the hosted zone for the sending domain via `ListHostedZonesByName`, walking up to parent zones.
+   `route53:GetChange` is not invoked by MyResend itself today, but is included so that you can inspect change propagation from the AWS Console or CLI without re-editing the policy.
+
+   **d. (Optional) Pin a specific hosted zone with `AWS_HOSTED_ZONE_ID`**
+
+   - **Leave unset** (recommended for single-zone or apex-plus-subdomain setups). MyResend calls `ListHostedZonesByName` for the sending domain and walks up to parent zones if needed — e.g. adding `mail.example.com` resolves to the `example.com` hosted zone automatically. Auto-discovery results are memoised per process.
+   - **Set explicitly** (`AWS_HOSTED_ZONE_ID=Z0123456789ABCDEFGHIJ`) when you run multiple Route53 hosted zones and want MyResend pinned to one specific zone — for example when several teams share an AWS account and only one of them owns the zone MyResend should touch.
+
+   **e. Verify**
+
+   After deploy, the admin **Connections** tab's DNS card calls `/api/health/dns` → `route53:ListHostedZones`. A green card confirms the IAM policy, region, and credentials are wired correctly. If the card is red, the response body identifies the failing action.
 
 2. **DigitalOcean** (`DNS_PROVIDER=digitalocean`)
 
-   Create an API token at [DigitalOcean → API → Tokens](https://cloud.digitalocean.com/account/api/tokens) with read+write scope and add the target domains to DO's DNS management. Set `DO_API_TOKEN`.
+   Use this when your DNS already lives at DigitalOcean and you don't want to migrate to Route53. Create an API token at [DigitalOcean → API → Tokens](https://cloud.digitalocean.com/account/api/tokens) with read+write scope, add the target domains under DO's DNS management, and set `DO_API_TOKEN`.
 
 ## 2. Environment Configuration
 
@@ -242,13 +268,18 @@ Value: 10 inbound-smtp.us-east-1.amazonaws.com
 
 3. **`/api/health/dns` returns `ok: false`**
 
-   - DigitalOcean: regenerate `DO_API_TOKEN` with read+write scope.
-   - Route53: confirm the Route53 policy is attached. If using a parent-zone-only setup, leave `AWS_HOSTED_ZONE_ID` unset so auto-discovery runs.
+   - **Route53** (default):
+     - Confirm the IAM policy from § 1 is attached to the same user as the SES credentials. The single most common cause is `route53:ListHostedZones` missing — the health probe calls it first.
+     - If you maintain multiple hosted zones and the probe fails on `GetHostedZone`, set `AWS_HOSTED_ZONE_ID` explicitly to pin one zone. Otherwise leave it unset so auto-discovery walks parent zones.
+     - Region is irrelevant — Route53 is global. `AWS_REGION` only affects SES.
+     - Cross-account scenarios (sending from account A, DNS in account B) are not supported by a single IAM user; either move DNS into the SES account or run two separate MyResend deploys.
+   - **DigitalOcean**: regenerate `DO_API_TOKEN` with read+write scope. Tokens lacking write scope can pass the connection check but fail at `setupDomainDNS`.
 
 4. **Domain verification stays "pending"**
 
    - DNS propagation can take minutes to hours. Confirm the records visible in your DNS provider match what the Domains tab generated.
    - DKIM tokens flow back into the DNS records on a retry — the first apply might omit them until SES returns the tokens.
+   - **Route53 specifically**: if the records appear in the AWS Console but `dig` from the public internet returns nothing, your registrar still points the domain at the previous nameservers. Re-check the NS delegation from § 1 step (b).
 
 5. **API key authentication fails**
 
