@@ -3,18 +3,25 @@ import { initializeDefaultUser } from "@/lib/auth";
 
 export async function POST() {
   try {
-    await initializeDefaultUser();
+    const result = await initializeDefaultUser();
 
     return NextResponse.json({
       success: true,
-      message: "Default user initialized successfully",
+      status: result.status,
+      message:
+        result.status === "skipped"
+          ? "ADMIN_EMAIL and ADMIN_PASSWORD not set; default user not created."
+          : result.status === "exists"
+            ? "Default admin user already exists."
+            : "Default admin user created.",
     });
   } catch (error: unknown) {
-    const errorObj = error as { message?: string };
+    const message =
+      error instanceof Error ? error.message : "Unknown setup failure";
     return NextResponse.json(
       {
         success: false,
-        error: errorObj.message,
+        error: message,
       },
       { status: 500 }
     );

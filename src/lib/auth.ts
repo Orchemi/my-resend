@@ -121,7 +121,11 @@ export async function getUserById(id: string): Promise<AuthUser | null> {
   }
 }
 
-export async function initializeDefaultUser(): Promise<void> {
+export type InitializeDefaultUserStatus = "created" | "exists" | "skipped";
+
+export async function initializeDefaultUser(): Promise<{
+  status: InitializeDefaultUserStatus;
+}> {
   const adminEmail = process.env.ADMIN_EMAIL;
   const adminPassword = process.env.ADMIN_PASSWORD;
 
@@ -129,24 +133,24 @@ export async function initializeDefaultUser(): Promise<void> {
     console.warn(
       "ADMIN_EMAIL and ADMIN_PASSWORD not set. Skipping default user creation."
     );
-    return;
+    return { status: "skipped" };
   }
 
-  try {
-    // Check if user already exists
-    const result = await query(
-      "SELECT id FROM users WHERE email = $1 LIMIT 1",
-      [adminEmail]
-    );
+  // Check if user already exists. Real failures (DB unreachable, schema
+  // missing, hash failure) propagate so the caller can surface them — the
+  // previous `console.error` + swallow pattern made `/api/setup` falsely
+  // report success.
+  const result = await query(
+    "SELECT id FROM users WHERE email = $1 LIMIT 1",
+    [adminEmail]
+  );
 
-    if (result.rows.length > 0) {
-      console.log("Default admin user already exists");
-      return;
-    }
-
-    await createUser(adminEmail, adminPassword, "Admin");
-    console.log("Default admin user created successfully");
-  } catch (error) {
-    console.error("Failed to create default admin user:", error);
+  if (result.rows.length > 0) {
+    console.log("Default admin user already exists");
+    return { status: "exists" };
   }
+
+  await createUser(adminEmail, adminPassword, "Admin");
+  console.log("Default admin user created successfully");
+  return { status: "created" };
 }
