@@ -144,40 +144,22 @@ export default function PricingCalculator({
     return vol.toString();
   };
 
-  // Calculate best savings option
+  // Calculate self-hosted savings vs Resend (the only comparison this fork
+  // surfaces — no hosted tier is offered).
   const bestSavings = useMemo(() => {
     if (comparison.resendCost === null || comparison.resendCost === 0) {
       return { amount: null, percentage: null, option: 'none', color: 'text-gray-500' };
     }
-
     const selfHostedSavings = comparison.savingsAbs || 0;
-    const hostedSavings = comparison.hostedSavingsAbs || 0;
-
-    if (selfHostedSavings > hostedSavings && selfHostedSavings > 0) {
+    if (selfHostedSavings > 0) {
       return {
         amount: selfHostedSavings,
         percentage: comparison.savingsPct,
         option: 'self-hosted',
-        color: 'text-green-600'
+        color: 'text-green-600',
       };
-    } else if (hostedSavings > selfHostedSavings && hostedSavings > 0) {
-      return {
-        amount: hostedSavings,
-        percentage: comparison.hostedSavingsPct,
-        option: 'hosted',
-        color: 'text-green-600'
-      };
-    } else if (Math.max(selfHostedSavings, hostedSavings) > 0) {
-      // If they're equal but positive, prefer hosted for simplicity
-      return {
-        amount: hostedSavings,
-        percentage: comparison.hostedSavingsPct,
-        option: 'hosted',
-        color: 'text-green-600'
-      };
-    } else {
-      return { amount: null, percentage: null, option: 'none', color: 'text-gray-500' };
     }
+    return { amount: null, percentage: null, option: 'none', color: 'text-gray-500' };
   }, [comparison]);
 
   // Legacy variables for backward compatibility
@@ -406,7 +388,7 @@ export default function PricingCalculator({
       </div>
 
       {/* Results Cards */}
-      <div className="grid lg:grid-cols-4 md:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-6">
         {/* Resend Cost */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center space-x-2 mb-3">
@@ -468,50 +450,7 @@ export default function PricingCalculator({
             )}
             {comparison.savingsAbs !== null && comparison.savingsAbs <= 0 && (
               <div className="mt-2 text-xs text-orange-600">
-                Consider hosted version for better value
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* MyResend Hosted Cost (reference comparison — no hosted service is offered) */}
-        <div className="bg-white rounded-lg shadow-sm border border-purple-200 p-6">
-          <div className="mb-3">
-            <div className="flex items-center space-x-2 mb-1">
-              <div className="h-5 w-5 rounded flex items-center justify-center bg-purple-600">
-                <span className="text-white text-xs font-bold">H</span>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">Hosted (reference)</h3>
-            </div>
-            {comparison.hostedTier.recommended && (
-              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-                Recommended
-              </span>
-            )}
-          </div>
-
-          <div className="mb-2">
-            <span className="text-3xl font-bold text-purple-600">
-              {formatUSD(comparison.hostedCost)}
-            </span>
-          </div>
-
-          <div className="text-sm text-gray-500">
-            <div className="mb-1">
-              {volume <= 3000 ? (
-                <span className="text-green-600 font-medium">Free service + SES costs</span>
-              ) : (
-                <span>$15 service fee + {formatUSD((volume / 1000) * sesRate)} SES</span>
-              )}
-            </div>
-            {comparison.hostedSavingsAbs !== null && comparison.hostedSavingsAbs > 0 && (
-              <div className="mt-1 text-xs text-green-600">
-                Save {formatPercent(comparison.hostedSavingsPct!)} vs Resend
-              </div>
-            )}
-            {comparison.hostedSavingsAbs !== null && comparison.hostedSavingsAbs < 0 && (
-              <div className="mt-1 text-xs text-orange-600">
-                +{formatPercent(Math.abs(comparison.hostedSavingsPct!))} vs Resend
+                At this volume Resend is still cheaper — adjust hosting cost or volume.
               </div>
             )}
           </div>
@@ -633,63 +572,6 @@ export default function PricingCalculator({
         </div>
       )}
 
-      {/* Hosted Tier Details */}
-      {!embeddable && (
-        <div className="mt-8 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6">
-          <div className="flex items-center space-x-2 mb-4">
-            <div className="h-6 w-6 bg-purple-600 rounded flex items-center justify-center">
-              <span className="text-white text-sm font-bold">H</span>
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900">
-              Hosted Version: {comparison.hostedTier.name} Tier
-            </h3>
-            {comparison.hostedTier.recommended && (
-              <span className="text-sm bg-purple-100 text-purple-700 px-3 py-1 rounded-full">
-                Recommended
-              </span>
-            )}
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="font-medium text-gray-900 mb-2">Pricing Breakdown</h4>
-              <div className="space-y-1 text-sm text-gray-600">
-                <div>First 3,000 emails: <span className="text-green-600 font-medium">Free</span></div>
-                <div>After 3,000 emails: <span className="text-purple-600 font-medium">$15/month flat fee</span></div>
-                <div>SES costs: <span className="text-blue-600">You pay Amazon directly</span></div>
-                {volume > comparison.hostedTier.includedEmails && (
-                  <div className="mt-2 p-2 bg-purple-50 rounded border border-purple-200">
-                    <div className="text-purple-700 font-medium text-sm">
-                      Your cost: $15/month service fee + SES costs
-                    </div>
-                  </div>
-                )}
-                {volume <= comparison.hostedTier.includedEmails && (
-                  <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
-                    <div className="text-green-700 font-medium text-sm">
-                      Your cost: Free service fee + SES costs only
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-medium text-gray-900 mb-2">Features</h4>
-              <ul className="space-y-1 text-sm text-gray-600">
-                {comparison.hostedTier.features.map((feature, index) => (
-                  <li key={index} className="flex items-center space-x-2">
-                    <div className="h-1.5 w-1.5 bg-purple-600 rounded-full"></div>
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-        </div>
-      )}
-
     </div>
   );
 }
@@ -699,9 +581,4 @@ export {
   comparePricing,
   formatUSD,
   formatPercent,
-  HOSTED_PRICING_TIERS,
-  getBestHostedTier,
-  getHostedCost,
-  getMyResendHostedCost
 } from '../lib/pricing-calculator';
-export type { HostedPricingTier, HostedQuote } from '../lib/pricing-calculator';

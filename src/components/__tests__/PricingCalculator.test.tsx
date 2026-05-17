@@ -1,10 +1,9 @@
 /**
  * Component tests for PricingCalculator.
  *
- * The waitlist coupling was removed in #38 — the calculator is now a pure
- * cost-comparison tool (Resend / Self-Hosted / Hosted-as-reference / Best
- * Savings). Hosted prices are kept as a reference data point only; this
- * fork does not operate a hosted service.
+ * The hosted-tier UI was removed alongside the waitlist surface — this
+ * fork only operates as self-hosted, so the comparison shrinks to:
+ * Resend vs Self-Hosted vs Best Savings.
  */
 
 import React from 'react';
@@ -34,20 +33,19 @@ describe('PricingCalculator', () => {
     jest.clearAllMocks();
   });
 
-  it('renders all four cost cards', () => {
+  it('renders the three cost cards', () => {
     render(<PricingCalculator />);
 
     expect(screen.getByText('Resend')).toBeInTheDocument();
     expect(screen.getByText('Self-Hosted')).toBeInTheDocument();
-    expect(screen.getByText(/Hosted \(reference\)/)).toBeInTheDocument();
     expect(screen.getByText('Best Savings')).toBeInTheDocument();
   });
 
-  it('shows the hosted-tier reference details section', () => {
+  it('does not render a hosted-tier card or detail block', () => {
     render(<PricingCalculator />);
 
-    expect(screen.getByText('Pricing Breakdown')).toBeInTheDocument();
-    expect(screen.getByText('Features')).toBeInTheDocument();
+    expect(screen.queryByText(/^Hosted/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Hosted Version:/)).not.toBeInTheDocument();
   });
 
   it('renders without any waitlist surface', () => {
@@ -59,13 +57,13 @@ describe('PricingCalculator', () => {
     expect(screen.queryByTestId('waitlist-signup')).not.toBeInTheDocument();
   });
 
-  it('renders in embeddable mode without waitlist surface', () => {
+  it('renders in embeddable mode without hosted-tier or waitlist surfaces', () => {
     render(<PricingCalculator embeddable={true} />);
 
     expect(screen.getByText('Resend')).toBeInTheDocument();
     expect(screen.getByText('Self-Hosted')).toBeInTheDocument();
-    expect(screen.getByText(/Hosted \(reference\)/)).toBeInTheDocument();
 
+    expect(screen.queryByText(/^Hosted/)).not.toBeInTheDocument();
     expect(screen.queryByText(/get early access to hosted version/i)).not.toBeInTheDocument();
   });
 });
