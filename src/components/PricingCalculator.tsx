@@ -438,7 +438,8 @@ export default function PricingCalculator({
             <div>Includes hosting & maintenance</div>
             <div className="text-xs mt-1 space-y-0.5">
               <div>• SES: {formatUSD(comparison.myResendBreakdown.sesCost)}</div>
-              <div>• Infrastructure: {formatUSD(comparison.myResendBreakdown.hostingCost + comparison.myResendBreakdown.maintenanceCost)}</div>
+              <div>• Hosting: {formatUSD(comparison.myResendBreakdown.hostingCost)}</div>
+              <div>• Maintenance: {formatUSD(comparison.myResendBreakdown.maintenanceCost)}</div>
               {comparison.myResendBreakdown.flatFee > 0 && (
                 <div>• Platform: {formatUSD(comparison.myResendBreakdown.flatFee)}</div>
               )}
