@@ -461,7 +461,7 @@ export default function LandingPage() {
               <ul className="space-y-2">
                 <li>
                   <a
-                    href="https://github.com/Orchemi/my-resend/blob/main/LICENSE"
+                    href="https://github.com/Orchemi/my-resend/blob/develop/LICENSE"
                     className="text-gray-400 hover:text-white transition-colors"
                   >
                     MIT License
