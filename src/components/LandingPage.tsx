@@ -207,6 +207,15 @@ export default function LandingPage() {
                 100% API compatibility with Resend. Zero code changes required -
                 just update your environment variable.
               </p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm">
+                <div className="font-semibold text-blue-800 mb-1">One-line switch:</div>
+                <code className="text-blue-700 font-mono text-xs block">
+                  RESEND_BASE_URL=&quot;https://mail.example.com/api&quot;
+                </code>
+                <div className="text-blue-700 text-xs mt-2">
+                  Existing Resend SDK code keeps working unchanged.
+                </div>
+              </div>
             </div>
 
             <div className="text-center group">
@@ -217,9 +226,16 @@ export default function LandingPage() {
                 Lightning Setup
               </h4>
               <p className="text-gray-600 leading-relaxed mb-4">
-                Auto-creates DNS records with Digital Ocean. From domain to
-                sending emails in under 60 seconds.
+                Auto-creates DNS records on Route53 or DigitalOcean. From domain
+                to sending emails in under 60 seconds.
               </p>
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 text-sm">
+                <div className="font-semibold text-purple-800 mb-1">DNS, automated:</div>
+                <div className="text-purple-700">
+                  MyResend writes the SES verification TXT, DKIM CNAMEs, SPF,
+                  DMARC, and MX records to the active DNS provider for you.
+                </div>
+              </div>
             </div>
           </div>
         </div>
