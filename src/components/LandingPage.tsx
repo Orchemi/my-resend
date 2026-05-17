@@ -53,12 +53,6 @@ export default function LandingPage() {
               </a>
               <Link
                 href="/login"
-                className="text-gray-600 hover:text-gray-900 transition-colors px-3 py-2"
-              >
-                Login
-              </Link>
-              <Link
-                href="/login"
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
               >
                 <span>Get Started</span>
@@ -92,7 +86,7 @@ export default function LandingPage() {
             email infrastructure
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Link
               href="/login"
               className="bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 font-semibold"
@@ -107,24 +101,6 @@ export default function LandingPage() {
               <DollarSign className="h-5 w-5" />
               <span>See Pricing</span>
             </Link>
-            <a
-              href="https://github.com/Orchemi/my-resend"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="border-2 border-gray-200 text-gray-700 px-8 py-4 rounded-lg hover:border-gray-300 transition-colors flex items-center justify-center space-x-2 font-semibold"
-            >
-              <Github className="h-5 w-5" />
-              <span>View on GitHub</span>
-            </a>
-          </div>
-          
-          <div className="text-center mb-8">
-            <p className="text-sm text-gray-500">
-              Already have an account?{" "}
-              <Link href="/login" className="text-blue-600 hover:text-blue-700 font-medium">
-                Login here
-              </Link>
-            </p>
           </div>
 
           {/* Migration Code Example */}
@@ -444,14 +420,6 @@ export default function LandingPage() {
                     href="https://github.com/Orchemi/my-resend"
                     className="text-gray-400 hover:text-white transition-colors"
                   >
-                    Documentation
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="https://github.com/Orchemi/my-resend"
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
                     GitHub
                   </a>
                 </li>
@@ -475,14 +443,6 @@ export default function LandingPage() {
                     className="text-gray-400 hover:text-white transition-colors"
                   >
                     Discussions
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="https://github.com/Orchemi/my-resend/blob/main/CONTRIBUTING.md"
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    Contributing
                   </a>
                 </li>
                 <li>
