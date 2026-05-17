@@ -1,6 +1,26 @@
 version: "3.8"
 
 services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: my_resend
+      POSTGRES_USER: my_resend
+      # Local-only default. Override via .env / production secrets store
+      # before running this stack in any non-development environment.
+      POSTGRES_PASSWORD: my_resend_dev
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U my_resend -d my_resend"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
   my-resend:
     build: .
     ports:
@@ -9,19 +29,10 @@ services:
       - NODE_ENV=production
     env_file:
       - .env.local
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
 
-  # Optional: PostgreSQL database (uncomment to run alongside)
-  # postgres:
-  #   image: postgres:15-alpine
-  #   environment:
-  #     POSTGRES_DB: my_resend
-  #     POSTGRES_USER: my_resend
-  #     POSTGRES_PASSWORD: your-password
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data
-  #     - ./database.sql:/docker-entrypoint-initdb.d/init.sql
-  #   ports:
-  #     - "5432:5432"
-# volumes:
-#   postgres_data:
+volumes:
+  postgres_data:
