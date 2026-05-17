@@ -191,7 +191,7 @@ The response body now carries a structured `status` field:
 
 ## 4. First Steps
 
-1. Visit `http://localhost:3000` and log in with your admin credentials.
+1. Visit `http://localhost:3000/admin` and log in with your admin credentials.
 2. Open the **Connections** tab — both the SES card and the DNS provider card should report `ok: true`. If either fails, the response payload includes a non-secret hint (e.g. region, IAM diagnostic).
 3. Add your first domain in the **Domains** tab — MyResend generates the required SES verification TXT, DKIM CNAMEs, SPF, DMARC, and MX records and applies them to the active DNS provider automatically.
 4. Wait for domain verification (polled in-tab).

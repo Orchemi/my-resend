@@ -3,18 +3,17 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import LoginForm from "@/components/LoginForm";
+import Dashboard from "@/components/Dashboard";
 
-export default function LoginPageClient() {
+export default function AdminPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect to admin dashboard if user is already logged in
-    if (user) {
-      router.push("/admin");
+    if (!loading && !user) {
+      router.push("/admin/login");
     }
-  }, [user, router]);
+  }, [user, loading, router]);
 
   if (loading) {
     return (
@@ -27,10 +26,9 @@ export default function LoginPageClient() {
     );
   }
 
-  // Don't show login form if user is authenticated (they'll be redirected)
-  if (user) {
+  if (!user) {
     return null;
   }
 
-  return <LoginForm />;
+  return <Dashboard />;
 }

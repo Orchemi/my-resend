@@ -54,17 +54,16 @@ describe('LandingPage', () => {
     });
   });
 
-  it('has correct CTA flow directing new operators to login', () => {
+  it('has correct CTA flow directing new operators to the admin area', () => {
     render(<LandingPage />);
 
-    // After the CTA dedupe the page surfaces one primary CTA in the
-    // header and one in the hero — both Get Started buttons route to
-    // /login. There is no longer a standalone "Login" text link, no
-    // "Login here" affordance, and no hero "View on GitHub" duplicate.
+    // Primary "Get Started" CTAs (header + hero + bottom CTA section) route
+    // to /admin — the admin route itself handles the auth gate and bounces
+    // unauthenticated visitors to /admin/login.
     const getStartedLinks = screen.getAllByRole('link', { name: /get started/i });
     expect(getStartedLinks.length).toBeGreaterThanOrEqual(2);
     getStartedLinks.forEach((link) => {
-      expect(link).toHaveAttribute('href', '/login');
+      expect(link).toHaveAttribute('href', '/admin');
     });
 
     expect(screen.getByRole('link', { name: /see pricing/i })).toHaveAttribute('href', '/pricing');

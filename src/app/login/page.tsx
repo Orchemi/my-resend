@@ -1,5 +1,6 @@
-import LoginPageClient from "@/components/LoginPageClient";
+import { redirect } from "next/navigation";
 
-export default function LoginPage() {
-  return <LoginPageClient />;
+// Compatibility redirect — admin login moved to /admin/login (issue #50).
+export default function LegacyLoginPage(): never {
+  redirect("/admin/login");
 }
