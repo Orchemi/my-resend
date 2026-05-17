@@ -36,11 +36,10 @@ jobs:
 
       - name: Test
         # --runInBand keeps the suite single-process so memory cleanup is
-        # deterministic, but it also accumulates leaks across files into
-        # one heap. WaitlistSignup leaks (mock fetch never reset, timers
-        # not cleaned) and OOMs the runner; exclude it here until #20
-        # fixes the underlying leak. Tracked in #19.
-        run: npm test -- --runInBand --testPathIgnorePatterns='WaitlistSignup'
+        # deterministic. The earlier WaitlistSignup pending-leak ignore
+        # pattern was removed once the waitlist surface itself was deleted
+        # (see docs/plan/012-remove-waitlist.md).
+        run: npm test -- --runInBand
 
       - name: Build
         run: npm run build
