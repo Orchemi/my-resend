@@ -532,10 +532,10 @@ export default function LandingPage() {
                 </li>
                 <li>
                   <a
-                    href="https://x.com/eibrahim"
+                    href="https://www.linkedin.com/in/huns"
                     className="text-gray-400 hover:text-white transition-colors"
                   >
-                    Twitter
+                    LinkedIn
                   </a>
                 </li>
               </ul>
@@ -554,7 +554,7 @@ export default function LandingPage() {
                 </li>
                 <li>
                   <a
-                    href="https://x.com/eibrahim"
+                    href="mailto:tmdgns1126@naver.com"
                     className="text-gray-400 hover:text-white transition-colors"
                   >
                     Contact
@@ -568,10 +568,10 @@ export default function LandingPage() {
             <p className="text-gray-400">
               Built by{" "}
               <a
-                href="https://x.com/eibrahim"
+                href="https://github.com/Orchemi"
                 className="text-blue-400 hover:text-blue-300"
               >
-                @eibrahim
+                Park Seunghun
               </a>{" "}
               • MIT Licensed • Made with ❤️ for developers.
             </p>
