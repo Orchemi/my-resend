@@ -18,29 +18,28 @@ describe('LandingPage', () => {
 
   it('renders pricing discovery elements in hero section', () => {
     render(<LandingPage />);
-    
-    // Check for "See Pricing" button in hero
+
+    // "See Pricing" button still exists; pricing page is kept as a generic
+    // cost-comparison tool even with the waitlist surface removed.
     expect(screen.getByRole('link', { name: /see pricing/i })).toBeInTheDocument();
-    
-    // Check for hosted version teaser
-    expect(screen.getByText(/hosted version coming soon/i)).toBeInTheDocument();
-    expect(screen.getByText(/50-85% savings/i)).toBeInTheDocument();
-    expect(screen.getByText(/fully managed/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/api compatible/i)).toHaveLength(2); // One in hero, one in benefits
+
+    // Hosted-version teaser block was removed in #38 — no longer a thing.
+    expect(screen.queryByText(/hosted version coming soon/i)).not.toBeInTheDocument();
   });
 
-  it('renders enhanced benefits section with pricing focus', () => {
+  it('renders the cost savings teaser in the benefits section', () => {
     render(<LandingPage />);
-    
-    // Check for cost savings calculator preview
+
+    // First benefit card still carries the "Quick Example" cost teaser.
     expect(screen.getByText(/quick example:/i)).toBeInTheDocument();
     expect(screen.getByText(/100k emails\/month/i)).toBeInTheDocument();
-    
-    // Check for hosted version messaging in benefits
-    expect(screen.getByText(/hosted version:/i)).toBeInTheDocument();
-    expect(screen.getByText(/even faster:/i)).toBeInTheDocument();
-    
-    // Check for multiple "Calculate your savings" links
+
+    // The "Hosted Version:" / "Even Faster:" hosted-tier teaser boxes were
+    // removed alongside the waitlist surface.
+    expect(screen.queryByText(/hosted version:/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/even faster:/i)).not.toBeInTheDocument();
+
+    // "Calculate your savings" still appears in the first benefit card.
     const savingsLinks = screen.getAllByText(/calculate your savings/i);
     expect(savingsLinks.length).toBeGreaterThan(0);
   });
@@ -55,22 +54,27 @@ describe('LandingPage', () => {
     });
   });
 
-  it('has correct CTA flow directing to waitlist', () => {
+  it('has correct CTA flow directing new operators to login', () => {
     render(<LandingPage />);
-    
-    // Check that main CTAs direct to waitlist/pricing
-    const joinWaitlistLinks = screen.getAllByRole('link', { name: /join waitlist$/i });
-    expect(joinWaitlistLinks).toHaveLength(2); // One in header, one in hero
-    joinWaitlistLinks.forEach(link => {
-      expect(link).toHaveAttribute('href', '/pricing');
+
+    // Primary CTAs ("Get Started") send the user to /login: one in the
+    // header and two on the page (hero + bottom call-to-action).
+    const getStartedLinks = screen.getAllByRole('link', { name: /get started/i });
+    expect(getStartedLinks.length).toBeGreaterThanOrEqual(2);
+    getStartedLinks.forEach((link) => {
+      expect(link).toHaveAttribute('href', '/login');
     });
-    
-    expect(screen.getByRole('link', { name: /join waitlist today/i })).toHaveAttribute('href', '/pricing');
-    
-    // Check that login is available but secondary
-    expect(screen.getAllByRole('link', { name: /login/i })).toHaveLength(2); // One in header, one in hero
-    
-    // Check existing functionality
+
+    // "See Pricing" still goes to the pricing calculator (OSS cost
+    // comparison tool, not a waitlist funnel).
+    expect(screen.getByRole('link', { name: /see pricing/i })).toHaveAttribute('href', '/pricing');
+
+    // No leftover waitlist-era CTAs.
+    expect(screen.queryByRole('link', { name: /join waitlist/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/hosted version coming soon/i)).not.toBeInTheDocument();
+
+    // Secondary surfaces still wired.
+    expect(screen.getAllByRole('link', { name: /login/i }).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/alternative to resend/i)).toBeInTheDocument();
     expect(screen.getByText(/100% api compatible/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /view on github/i })).toBeInTheDocument();

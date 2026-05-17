@@ -16,13 +16,11 @@ import {
   clampVolume,
   type PricingComparison
 } from '../lib/pricing-calculator';
-import WaitlistSignup from './WaitlistSignup';
 
 interface PricingCalculatorProps {
   className?: string;
   showAdvanced?: boolean;
   embeddable?: boolean;
-  showWaitlist?: boolean;
 }
 
 const QUICK_PICK_VALUES = [
@@ -51,7 +49,6 @@ export default function PricingCalculator({
   className = '',
   showAdvanced = true,
   embeddable = false,
-  showWaitlist = true
 }: PricingCalculatorProps) {
   // State with localStorage persistence
   const [volume, setVolume] = useState(50000);
@@ -61,7 +58,6 @@ export default function PricingCalculator({
   const [maintenanceCost, setMaintenanceCost] = useState(10.00);
   const [showDetails, setShowDetails] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [waitlistSuccess, setWaitlistSuccess] = useState(false);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -148,40 +144,22 @@ export default function PricingCalculator({
     return vol.toString();
   };
 
-  // Calculate best savings option
+  // Calculate self-hosted savings vs Resend (the only comparison this fork
+  // surfaces — no hosted tier is offered).
   const bestSavings = useMemo(() => {
     if (comparison.resendCost === null || comparison.resendCost === 0) {
       return { amount: null, percentage: null, option: 'none', color: 'text-gray-500' };
     }
-
     const selfHostedSavings = comparison.savingsAbs || 0;
-    const hostedSavings = comparison.hostedSavingsAbs || 0;
-
-    if (selfHostedSavings > hostedSavings && selfHostedSavings > 0) {
+    if (selfHostedSavings > 0) {
       return {
         amount: selfHostedSavings,
         percentage: comparison.savingsPct,
         option: 'self-hosted',
-        color: 'text-green-600'
+        color: 'text-green-600',
       };
-    } else if (hostedSavings > selfHostedSavings && hostedSavings > 0) {
-      return {
-        amount: hostedSavings,
-        percentage: comparison.hostedSavingsPct,
-        option: 'hosted',
-        color: 'text-green-600'
-      };
-    } else if (Math.max(selfHostedSavings, hostedSavings) > 0) {
-      // If they're equal but positive, prefer hosted for simplicity
-      return {
-        amount: hostedSavings,
-        percentage: comparison.hostedSavingsPct,
-        option: 'hosted',
-        color: 'text-green-600'
-      };
-    } else {
-      return { amount: null, percentage: null, option: 'none', color: 'text-gray-500' };
     }
+    return { amount: null, percentage: null, option: 'none', color: 'text-gray-500' };
   }, [comparison]);
 
   // Legacy variables for backward compatibility
@@ -410,7 +388,7 @@ export default function PricingCalculator({
       </div>
 
       {/* Results Cards */}
-      <div className="grid lg:grid-cols-4 md:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-6">
         {/* Resend Cost */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center space-x-2 mb-3">
@@ -472,71 +450,7 @@ export default function PricingCalculator({
             )}
             {comparison.savingsAbs !== null && comparison.savingsAbs <= 0 && (
               <div className="mt-2 text-xs text-orange-600">
-                Consider hosted version for better value
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* MyResend Hosted Cost */}
-        <div className={`bg-white rounded-lg shadow-sm border p-6 ${waitlistSuccess ? 'border-green-200 bg-green-50' : 'border-purple-200'}`}>
-          <div className="mb-3">
-            <div className="flex items-center space-x-2 mb-1">
-              <div className={`h-5 w-5 rounded flex items-center justify-center ${waitlistSuccess ? 'bg-green-600' : 'bg-purple-600'}`}>
-                <span className="text-white text-xs font-bold">H</span>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">Hosted</h3>
-            </div>
-            {waitlistSuccess && (
-              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                On Waitlist ✓
-              </span>
-            )}
-            {!waitlistSuccess && comparison.hostedTier.recommended && (
-              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-                Recommended
-              </span>
-            )}
-          </div>
-
-          <div className="mb-2">
-            <span className={`text-3xl font-bold ${waitlistSuccess ? 'text-green-600' : 'text-purple-600'}`}>
-              {formatUSD(comparison.hostedCost)}
-            </span>
-          </div>
-
-          <div className="text-sm text-gray-500">
-            <div className="mb-1">
-              {volume <= 3000 ? (
-                <span className="text-green-600 font-medium">Free service + SES costs</span>
-              ) : (
-                <span>$15 service fee + {formatUSD((volume / 1000) * sesRate)} SES</span>
-              )}
-            </div>
-            {comparison.hostedSavingsAbs !== null && comparison.hostedSavingsAbs > 0 && (
-              <div className="mt-1 text-xs text-green-600">
-                Save {formatPercent(comparison.hostedSavingsPct!)} vs Resend
-              </div>
-            )}
-            {comparison.hostedSavingsAbs !== null && comparison.hostedSavingsAbs < 0 && (
-              <div className="mt-1 text-xs text-orange-600">
-                +{formatPercent(Math.abs(comparison.hostedSavingsPct!))} vs Resend
-              </div>
-            )}
-            {showWaitlist && !waitlistSuccess && !embeddable && (
-              <button
-                onClick={() => {
-                  const waitlistSection = document.querySelector('[data-waitlist-signup]');
-                  waitlistSection?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="mt-2 text-xs text-purple-600 hover:text-purple-700 underline"
-              >
-                Join waitlist →
-              </button>
-            )}
-            {waitlistSuccess && (
-              <div className="mt-1 text-xs text-green-600">
-                You&apos;re on the waitlist! We&apos;ll notify you when it&apos;s ready.
+                At this volume Resend is still cheaper — adjust hosting cost or volume.
               </div>
             )}
           </div>
@@ -658,103 +572,6 @@ export default function PricingCalculator({
         </div>
       )}
 
-      {/* Hosted Tier Details */}
-      {!embeddable && (
-        <div className="mt-8 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6">
-          <div className="flex items-center space-x-2 mb-4">
-            <div className="h-6 w-6 bg-purple-600 rounded flex items-center justify-center">
-              <span className="text-white text-sm font-bold">H</span>
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900">
-              Hosted Version: {comparison.hostedTier.name} Tier
-            </h3>
-            {comparison.hostedTier.recommended && (
-              <span className="text-sm bg-purple-100 text-purple-700 px-3 py-1 rounded-full">
-                Recommended
-              </span>
-            )}
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="font-medium text-gray-900 mb-2">Pricing Breakdown</h4>
-              <div className="space-y-1 text-sm text-gray-600">
-                <div>First 3,000 emails: <span className="text-green-600 font-medium">Free</span></div>
-                <div>After 3,000 emails: <span className="text-purple-600 font-medium">$15/month flat fee</span></div>
-                <div>SES costs: <span className="text-blue-600">You pay Amazon directly</span></div>
-                {volume > comparison.hostedTier.includedEmails && (
-                  <div className="mt-2 p-2 bg-purple-50 rounded border border-purple-200">
-                    <div className="text-purple-700 font-medium text-sm">
-                      Your cost: $15/month service fee + SES costs
-                    </div>
-                  </div>
-                )}
-                {volume <= comparison.hostedTier.includedEmails && (
-                  <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
-                    <div className="text-green-700 font-medium text-sm">
-                      Your cost: Free service fee + SES costs only
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-medium text-gray-900 mb-2">Features</h4>
-              <ul className="space-y-1 text-sm text-gray-600">
-                {comparison.hostedTier.features.map((feature, index) => (
-                  <li key={index} className="flex items-center space-x-2">
-                    <div className="h-1.5 w-1.5 bg-purple-600 rounded-full"></div>
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {showWaitlist && (
-            <div className="mt-6 bg-white rounded-lg border border-purple-200 overflow-hidden" data-waitlist-signup>
-              <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-4">
-                <h4 className="text-lg font-semibold text-white">
-                  Get Early Access to Hosted Version
-                </h4>
-                <p className="text-purple-100 text-sm mt-1">
-                  Join the waitlist and be the first to know when it launches
-                </p>
-              </div>
-              <WaitlistSignup
-                estimatedVolume={volume}
-                compact={true}
-                className="border-0"
-                trackingContext="pricing-calculator"
-                onSuccess={() => {
-                  setWaitlistSuccess(true);
-                  // Track successful signup from pricing calculator
-                  if (typeof window !== 'undefined' && window.gtag) {
-                    window.gtag('event', 'waitlist_signup_from_calculator', {
-                      volume: volume,
-                      tier: comparison.hostedTier.name,
-                      hosted_cost: comparison.hostedCost,
-                      self_hosted_cost: comparison.myResendCost,
-                      resend_cost: comparison.resendCost
-                    });
-                  }
-                }}
-              />
-            </div>
-          )}
-
-          {!showWaitlist && (
-            <div className="mt-4 p-4 bg-white rounded-lg border border-purple-200">
-              <div className="text-sm text-gray-600">
-                <strong>Coming Soon:</strong> The hosted version is currently in development.
-                Join our waitlist to be notified when it becomes available and get early access pricing.
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
     </div>
   );
 }
@@ -764,9 +581,4 @@ export {
   comparePricing,
   formatUSD,
   formatPercent,
-  HOSTED_PRICING_TIERS,
-  getBestHostedTier,
-  getHostedCost,
-  getMyResendHostedCost
 } from '../lib/pricing-calculator';
-export type { HostedPricingTier, HostedQuote } from '../lib/pricing-calculator';
