@@ -16,13 +16,11 @@ import {
   clampVolume,
   type PricingComparison
 } from '../lib/pricing-calculator';
-import WaitlistSignup from './WaitlistSignup';
 
 interface PricingCalculatorProps {
   className?: string;
   showAdvanced?: boolean;
   embeddable?: boolean;
-  showWaitlist?: boolean;
 }
 
 const QUICK_PICK_VALUES = [
@@ -51,7 +49,6 @@ export default function PricingCalculator({
   className = '',
   showAdvanced = true,
   embeddable = false,
-  showWaitlist = true
 }: PricingCalculatorProps) {
   // State with localStorage persistence
   const [volume, setVolume] = useState(50000);
@@ -61,7 +58,6 @@ export default function PricingCalculator({
   const [maintenanceCost, setMaintenanceCost] = useState(10.00);
   const [showDetails, setShowDetails] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [waitlistSuccess, setWaitlistSuccess] = useState(false);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -478,21 +474,16 @@ export default function PricingCalculator({
           </div>
         </div>
 
-        {/* MyResend Hosted Cost */}
-        <div className={`bg-white rounded-lg shadow-sm border p-6 ${waitlistSuccess ? 'border-green-200 bg-green-50' : 'border-purple-200'}`}>
+        {/* MyResend Hosted Cost (reference comparison — no hosted service is offered) */}
+        <div className="bg-white rounded-lg shadow-sm border border-purple-200 p-6">
           <div className="mb-3">
             <div className="flex items-center space-x-2 mb-1">
-              <div className={`h-5 w-5 rounded flex items-center justify-center ${waitlistSuccess ? 'bg-green-600' : 'bg-purple-600'}`}>
+              <div className="h-5 w-5 rounded flex items-center justify-center bg-purple-600">
                 <span className="text-white text-xs font-bold">H</span>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">Hosted</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Hosted (reference)</h3>
             </div>
-            {waitlistSuccess && (
-              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                On Waitlist ✓
-              </span>
-            )}
-            {!waitlistSuccess && comparison.hostedTier.recommended && (
+            {comparison.hostedTier.recommended && (
               <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
                 Recommended
               </span>
@@ -500,7 +491,7 @@ export default function PricingCalculator({
           </div>
 
           <div className="mb-2">
-            <span className={`text-3xl font-bold ${waitlistSuccess ? 'text-green-600' : 'text-purple-600'}`}>
+            <span className="text-3xl font-bold text-purple-600">
               {formatUSD(comparison.hostedCost)}
             </span>
           </div>
@@ -521,22 +512,6 @@ export default function PricingCalculator({
             {comparison.hostedSavingsAbs !== null && comparison.hostedSavingsAbs < 0 && (
               <div className="mt-1 text-xs text-orange-600">
                 +{formatPercent(Math.abs(comparison.hostedSavingsPct!))} vs Resend
-              </div>
-            )}
-            {showWaitlist && !waitlistSuccess && !embeddable && (
-              <button
-                onClick={() => {
-                  const waitlistSection = document.querySelector('[data-waitlist-signup]');
-                  waitlistSection?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="mt-2 text-xs text-purple-600 hover:text-purple-700 underline"
-              >
-                Join waitlist →
-              </button>
-            )}
-            {waitlistSuccess && (
-              <div className="mt-1 text-xs text-green-600">
-                You&apos;re on the waitlist! We&apos;ll notify you when it&apos;s ready.
               </div>
             )}
           </div>
@@ -712,46 +687,6 @@ export default function PricingCalculator({
             </div>
           </div>
 
-          {showWaitlist && (
-            <div className="mt-6 bg-white rounded-lg border border-purple-200 overflow-hidden" data-waitlist-signup>
-              <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-4">
-                <h4 className="text-lg font-semibold text-white">
-                  Get Early Access to Hosted Version
-                </h4>
-                <p className="text-purple-100 text-sm mt-1">
-                  Join the waitlist and be the first to know when it launches
-                </p>
-              </div>
-              <WaitlistSignup
-                estimatedVolume={volume}
-                compact={true}
-                className="border-0"
-                trackingContext="pricing-calculator"
-                onSuccess={() => {
-                  setWaitlistSuccess(true);
-                  // Track successful signup from pricing calculator
-                  if (typeof window !== 'undefined' && window.gtag) {
-                    window.gtag('event', 'waitlist_signup_from_calculator', {
-                      volume: volume,
-                      tier: comparison.hostedTier.name,
-                      hosted_cost: comparison.hostedCost,
-                      self_hosted_cost: comparison.myResendCost,
-                      resend_cost: comparison.resendCost
-                    });
-                  }
-                }}
-              />
-            </div>
-          )}
-
-          {!showWaitlist && (
-            <div className="mt-4 p-4 bg-white rounded-lg border border-purple-200">
-              <div className="text-sm text-gray-600">
-                <strong>Coming Soon:</strong> The hosted version is currently in development.
-                Join our waitlist to be notified when it becomes available and get early access pricing.
-              </div>
-            </div>
-          )}
         </div>
       )}
 
