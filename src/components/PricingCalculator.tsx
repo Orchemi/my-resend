@@ -184,7 +184,7 @@ export default function PricingCalculator({
                   type="number"
                   value={volume}
                   onChange={(e) => handleVolumeChange(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   min="0"
                   max="5000000"
                   step="1000"
@@ -268,7 +268,7 @@ export default function PricingCalculator({
                       type="number"
                       value={flatFee.toFixed(2)}
                       onChange={(e) => handleFlatFeeChange(e.target.value)}
-                      className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       min="0"
                       step="0.50"
                       aria-label="Optional platform fee in USD"
@@ -292,7 +292,7 @@ export default function PricingCalculator({
                       type="number"
                       value={sesRate.toFixed(2)}
                       onChange={(e) => handleSesRateChange(e.target.value)}
-                      className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       min="0"
                       step="0.01"
                       aria-label="SES rate per 1000 emails in USD"
@@ -313,7 +313,7 @@ export default function PricingCalculator({
                       type="number"
                       value={hostingCost.toFixed(2)}
                       onChange={(e) => handleHostingCostChange(e.target.value)}
-                      className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       min="0"
                       step="1.00"
                       aria-label="Monthly hosting cost in USD"
@@ -334,7 +334,7 @@ export default function PricingCalculator({
                       type="number"
                       value={maintenanceCost.toFixed(2)}
                       onChange={(e) => handleMaintenanceCostChange(e.target.value)}
-                      className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       min="0"
                       step="1.00"
                       aria-label="Monthly maintenance cost in USD"
