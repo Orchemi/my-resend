@@ -21,20 +21,23 @@ MyResend uses raw `pg` queries (no ORM) and bootstraps from a single SQL file. A
    createdb my_resend
    ```
 
-2. **Option B: Docker**
+2. **Option B: Docker Compose (recommended for first run)**
+
+   The repository ships a `docker-compose.yml` that boots Postgres 15 with the schema preloaded:
 
    ```bash
-   docker run -d --name my-resend-pg \
-     -e POSTGRES_PASSWORD=postgres \
-     -e POSTGRES_DB=my_resend \
-     -p 5432:5432 postgres:15-alpine
+   docker compose up -d postgres
    ```
+
+   This binds `localhost:5432`, mounts `database.sql` as the entrypoint init script (so the schema applies on first boot), and exposes the database to the app on the host. Default credentials match the example connection string in step 2 (`my_resend` / `my_resend_dev`).
+
+   Skip the manual `psql ... -f database.sql` step — Docker Compose runs it for you on the first volume creation.
 
 3. **Option C: Managed Postgres**
 
    Any PostgreSQL-compatible service (e.g. AWS RDS, Google Cloud SQL, DigitalOcean Managed Databases, Neon, Render) works. Provision a database and capture the connection string for `DATABASE_URL`.
 
-4. **Initialize the schema:**
+4. **Initialize the schema (Options A and C only):**
 
    ```bash
    # database.sql creates: users, domains, api_keys, email_logs,
@@ -142,8 +145,10 @@ MyResend dispatches domain DNS setup to the provider chosen by `DNS_PROVIDER`. P
 2. Edit `.env.local` with your actual values. The full key set and per-key meaning is documented in `CLAUDE.md § Environment Configuration`. The minimum set for a local boot is:
 
    ```env
-   # Database
-   DATABASE_URL=postgresql://postgres:postgres@localhost:5432/my_resend
+   # Database — REQUIRED. Missing or empty value now throws on first DB use
+   # (no silent fallback to libpq defaults). The example below matches the
+   # docker-compose Postgres service in § 1 Option B.
+   DATABASE_URL=postgresql://my_resend:my_resend_dev@localhost:5432/my_resend
 
    # AWS SES (required)
    AWS_REGION=us-east-1
@@ -172,9 +177,17 @@ npm install
 # Start the development server (Next.js 15, Turbopack)
 npm run dev
 
-# In a separate terminal, seed the default admin user from ADMIN_EMAIL / ADMIN_PASSWORD
-curl -X POST http://localhost:3000/api/setup
+# In a separate terminal, seed the default admin user from ADMIN_EMAIL / ADMIN_PASSWORD.
+# `-f` makes curl exit non-zero on HTTP 4xx/5xx so a failed seed is visible to scripts.
+curl -fsSL -X POST http://localhost:3000/api/setup
 ```
+
+The response body now carries a structured `status` field:
+
+- `{"success":true,"status":"created"}` — first run: admin user inserted.
+- `{"success":true,"status":"exists"}` — admin user was already present (re-running setup is a no-op).
+- `{"success":true,"status":"skipped"}` — `ADMIN_EMAIL` or `ADMIN_PASSWORD` is unset. Setup did **not** touch the database. Fill the missing env value, restart the dev server, and call setup again.
+- `{"success":false,"error":"..."}` (HTTP 500) — the underlying failure (DB unreachable, schema missing, hashing error) bubbled out. Read the message and the server log; do not treat the previous 200 cached in any old terminal as a green light.
 
 ## 4. First Steps
 
