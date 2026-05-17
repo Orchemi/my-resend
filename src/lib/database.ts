@@ -1,23 +1,61 @@
 import { Pool, PoolClient } from "pg";
 
-// PostgreSQL connection pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-    ca: undefined,
-  },
-  max: 5, // Maximum number of clients in the pool (reduced from 20)
-  idleTimeoutMillis: 10000, // Close idle clients after 10 seconds (reduced from 30s)
-  connectionTimeoutMillis: 5000, // Return an error after 5 seconds if connection could not be established
-});
+// Pool is constructed lazily so importing this module does not require
+// DATABASE_URL — but the first real use throws with a clear, actionable
+// message. Without this guard, `pg` silently falls back to libpq defaults
+// (PGHOST/PGPORT/PGUSER) and can connect to an unrelated local Postgres.
+let _pool: Pool | undefined;
 
-// Export the pool for direct access if needed
-export { pool as db };
+export function getPool(): Pool {
+  if (_pool) return _pool;
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error(
+      "DATABASE_URL is not set. Copy .env.local.example to .env.local and set DATABASE_URL — see SETUP.md § 3."
+    );
+  }
+  _pool = new Pool({
+    connectionString,
+    ssl: resolveSsl(connectionString),
+    max: 5,
+    idleTimeoutMillis: 10000,
+    connectionTimeoutMillis: 5000,
+  });
+  return _pool;
+}
+
+/**
+ * Decide the pg `ssl` option from libpq conventions instead of forcing it on.
+ *
+ * Precedence: PGSSLMODE env → `sslmode` query param in DATABASE_URL → disabled.
+ *
+ * - `disable` / `allow` (or unset) → `false` (plain TCP). Required for local
+ *   Docker Postgres and any instance that does not terminate TLS.
+ * - `require` / `prefer` → `{ rejectUnauthorized: false }`. The TLS layer is
+ *   used but server-cert verification is skipped — sufficient for managed
+ *   Postgres (RDS, Neon, Render) that ship public certs without bundling a CA.
+ * - `verify-ca` / `verify-full` → `{ rejectUnauthorized: true }`. Caller is
+ *   responsible for providing CA via `PGSSLROOTCERT` if a custom chain is in
+ *   play; we leave that to libpq's own resolution path.
+ */
+function resolveSsl(connectionString: string): false | { rejectUnauthorized: boolean } {
+  const mode = (process.env.PGSSLMODE ?? extractSslMode(connectionString) ?? "").toLowerCase();
+  if (!mode || mode === "disable" || mode === "allow") return false;
+  if (mode === "verify-ca" || mode === "verify-full") return { rejectUnauthorized: true };
+  return { rejectUnauthorized: false };
+}
+
+function extractSslMode(connectionString: string): string | null {
+  try {
+    return new URL(connectionString).searchParams.get("sslmode");
+  } catch {
+    return null;
+  }
+}
 
 // Helper function for single queries
 export async function query(text: string, params?: unknown[]) {
-  const client = await pool.connect();
+  const client = await getPool().connect();
   try {
     const result = await client.query(text, params);
     return result;
@@ -30,7 +68,7 @@ export async function query(text: string, params?: unknown[]) {
 export async function transaction<T>(
   callback: (client: PoolClient) => Promise<T>
 ): Promise<T> {
-  const client = await pool.connect();
+  const client = await getPool().connect();
   try {
     await client.query("BEGIN");
     const result = await callback(client);
@@ -152,7 +190,10 @@ export async function testConnection(): Promise<boolean> {
 
 // Graceful shutdown
 export async function closeDatabase(): Promise<void> {
-  await pool.end();
+  if (_pool) {
+    await _pool.end();
+    _pool = undefined;
+  }
 }
 
 // Waitlist operations

@@ -3,6 +3,10 @@
  * @jest-environment node
  */
 
+// `database.ts` validates DATABASE_URL on first Pool access. Provide a stub
+// so the lazy guard does not throw — the real Pool is mocked below.
+process.env.DATABASE_URL = process.env.DATABASE_URL ?? 'postgresql://test:test@localhost:5432/test';
+
 // Mock pg module before importing database
 jest.mock('pg', () => {
   const mockClient = {
@@ -30,14 +34,14 @@ import {
   CreateWaitlistSignupData,
   WaitlistSignup,
   WaitlistAnalytics,
-  db,
+  getPool,
 } from '../database';
 
 // Get access to the mocked pool. The actual `Pool` type from `pg` has a
 // dozen methods we don't touch here — narrow to just the surface this
 // test mutates. `jest.Mock` (vs `MockedFunction<...>`) avoids TypeScript's
 // strict callable-shape comparison with the real `Pool.connect` overload.
-const mockPool = db as unknown as {
+const mockPool = getPool() as unknown as {
   connect: jest.Mock;
 };
 const mockClient = {
