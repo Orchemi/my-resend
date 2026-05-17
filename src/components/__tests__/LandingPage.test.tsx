@@ -57,27 +57,26 @@ describe('LandingPage', () => {
   it('has correct CTA flow directing new operators to login', () => {
     render(<LandingPage />);
 
-    // Primary CTAs ("Get Started") send the user to /login: one in the
-    // header and two on the page (hero + bottom call-to-action).
+    // After the CTA dedupe the page surfaces one primary CTA in the
+    // header and one in the hero — both Get Started buttons route to
+    // /login. There is no longer a standalone "Login" text link, no
+    // "Login here" affordance, and no hero "View on GitHub" duplicate.
     const getStartedLinks = screen.getAllByRole('link', { name: /get started/i });
     expect(getStartedLinks.length).toBeGreaterThanOrEqual(2);
     getStartedLinks.forEach((link) => {
       expect(link).toHaveAttribute('href', '/login');
     });
 
-    // "See Pricing" still goes to the pricing calculator (OSS cost
-    // comparison tool, not a waitlist funnel).
     expect(screen.getByRole('link', { name: /see pricing/i })).toHaveAttribute('href', '/pricing');
 
-    // No leftover waitlist-era CTAs.
+    expect(screen.queryByRole('link', { name: /^login$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /login here/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /view on github/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /join waitlist/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/hosted version coming soon/i)).not.toBeInTheDocument();
 
-    // Secondary surfaces still wired.
-    expect(screen.getAllByRole('link', { name: /login/i }).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/alternative to resend/i)).toBeInTheDocument();
     expect(screen.getByText(/100% api compatible/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /view on github/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /view documentation/i })).toBeInTheDocument();
   });
 });
