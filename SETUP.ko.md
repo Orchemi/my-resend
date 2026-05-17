@@ -191,7 +191,7 @@ curl -fsSL -X POST http://localhost:3000/api/setup
 
 ## 4. 첫 단계
 
-1. `http://localhost:3000` 에 접속하고 admin credential 로 로그인합니다.
+1. `http://localhost:3000/admin` 에 접속하고 admin credential 로 로그인합니다.
 2. **Connections** 탭을 엽니다 — SES 카드와 DNS provider 카드 모두 `ok: true` 를 표시해야 합니다. 둘 중 하나라도 실패하면 응답 payload 에 비-시크릿 힌트 (region, IAM 진단 등) 가 포함됩니다.
 3. **Domains** 탭에서 첫 도메인을 추가합니다 — MyResend 가 필요한 SES verification TXT, DKIM CNAME, SPF, DMARC, MX 레코드를 생성하고 활성 DNS provider 에 자동으로 적용합니다.
 4. 도메인 verification 을 기다립니다 (탭 안에서 polling).

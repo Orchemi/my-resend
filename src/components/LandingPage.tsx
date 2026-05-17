@@ -52,7 +52,7 @@ export default function LandingPage() {
                 <span className="hidden sm:inline">GitHub</span>
               </a>
               <Link
-                href="/login"
+                href="/admin"
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
               >
                 <span>Get Started</span>
@@ -88,7 +88,7 @@ export default function LandingPage() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Link
-              href="/login"
+              href="/admin"
               className="bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 font-semibold"
             >
               <span>Get Started</span>
@@ -377,7 +377,7 @@ export default function LandingPage() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/login"
+              href="/admin"
               className="bg-white text-blue-600 px-8 py-4 rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-center space-x-2 font-semibold"
             >
               <span>Get Started</span>
