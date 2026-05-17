@@ -34,7 +34,13 @@ export default function LoginForm() {
             Sign in to MyResend
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Your self-hosted email service
+            Admin sign-in for your self-hosted MyResend instance.
+          </p>
+          <p className="mt-1 text-center text-xs text-gray-500">
+            This is a single-admin app — credentials are seeded from{" "}
+            <code className="text-xs">ADMIN_EMAIL</code> /{" "}
+            <code className="text-xs">ADMIN_PASSWORD</code> via{" "}
+            <code className="text-xs">POST /api/setup</code>. No public signup.
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -87,6 +93,19 @@ export default function LoginForm() {
             </button>
           </div>
         </form>
+
+        <p className="text-center text-xs text-gray-500">
+          Haven&apos;t seeded the admin yet? See{" "}
+          <a
+            href="https://github.com/Orchemi/my-resend/blob/develop/SETUP.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-700 underline"
+          >
+            SETUP.md § 2–3
+          </a>{" "}
+          for env vars and the seed step.
+        </p>
       </div>
     </div>
   );
